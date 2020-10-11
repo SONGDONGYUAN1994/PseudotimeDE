@@ -1,7 +1,7 @@
 #' @title Perform Differential Expression Test on One Gene
 #'
 #' @description
-#' Test if one gene is differentially expressed with pseudotime.
+#' Test if one gene is differentially expressed along pseudotime.
 #' @param gene A string of gene name. It should be one of the row names in sce.
 #' @param ori.tbl A tibble or dataframe which contains the original cells and pseudotime as two columns.
 #' @param boot.tbl A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as ori.tbl.
