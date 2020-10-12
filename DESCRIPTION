@@ -1,10 +1,10 @@
-Package: pseudotimeDE
+Package: PseudotimeDE
 Type: Package
 Title: A Robust Differential Expression Anlysis Method Incorperating Pseudotime Uncertainty
 Version: 0.1.0
 Author: Dongyuan Song
 Maintainer: Dongyuan Song <dongyuansong@ucla.edu>
-Description: pseudotimeDE performs the differential expression analysis of genes along the pseudotime.
+Description: PseudotimeDE performs the differential expression analysis of genes along the pseudotime.
     Given a single cell RNA-seq data and a pseudotime inference method, pseudotimeDE returns the p-values of each gene.
 Depends: R (>= 3.6.0)
 Imports: SummarizedExperiment,

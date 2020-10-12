@@ -4,11 +4,11 @@
 #' Test if one gene is differentially expressed along pseudotime.
 #' @param gene A string of gene name. It should be one of the row names in sce.
 #' @param ori.tbl A tibble or dataframe which contains the original cells and pseudotime as two columns.
-#' @param boot.tbl A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as ori.tbl.
-#' @param sce A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cell.
+#' @param sub.tbl A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as ori.tbl.
+#' @param sce A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.
 #' @param model A string of the model name. One of \code{nb}, \code{zinb} and \code{auto}.
-#' @param k A integer of the basis dimension. Default is 6.
-#' @param knots A numeric vector of the position of knots.
+#' @param k A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.
+#' @param knots A numeric vector of the location of knots.
 #' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.
 #' @param aicdiff A numeric variable of the threshold of modle selection. Only works when \code{model = `auto`}.
 #' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
@@ -17,11 +17,10 @@
 #' @return A list with the components:
 #' \describe{
 #'   \item{\code{fix.pv}}{The p-value assuming the pseudotime is fixed}
-#'   \item{\code{permut.pv}}{The permutation p-value}
-#'   \item{\code{smooth.pv}}{The permutation p-value by fitting a parametric null distribution}
+#'   \item{\code{emp.pv}}{The permutation p-value}
+#'   \item{\code{para.pv}}{The permutation p-value by fitting a parametric null distribution}
 #'   \item{\code{rank}}{The estimated effect degree of freedom of the original model}
-#'   \item{\code{Tr}}{The test statistic of the original model}
-#'   \item{\code{Tr.dist}}{The null sample of the test statistic}
+#'   \item{\code{gam.fit}}{The fitted gam model on original data}
 #'   \item{\code{zinf}}{Whether the model is zero inflated}
 #'   \item{\code{aic}}{The AIC of the orignial model}
 #'   \item{\code{expv.quantile}}{Quantiles of the log counts plus 1}
@@ -38,14 +37,14 @@
 #' @importFrom fitdistrplus fitdist
 #' @importFrom mixtools gammamixEM
 #'
-#' @export pseudotimeDE
+#' @export PseudotimeDE
 #' @author Dongyuan Song
 
 
 
-pseudotimeDE <- function(gene,
+PseudotimeDE <- function(gene,
                          ori.tbl,
-                         boot.tbl,
+                         sub.tbl,
                          sce,
                          model = c("nb", "zinb", "auto"),
                          k = 6,
@@ -60,9 +59,11 @@ pseudotimeDE <- function(gene,
   set.seed(seed)
 
   ## Make the k parameter global. Be cautious about this.
-  k <<- k
+  #k <<- k
 
-  n.boot <- dim(boot.tbl)[1]
+  fit.formula <- as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr'"))
+
+  n.boot <- dim(sub.tbl)[1]
   num_cell <- length(ori.tbl$cell)
   pseudotime <- ori.tbl$pseudotime
 
@@ -76,7 +77,7 @@ pseudotimeDE <- function(gene,
   expv.zero <- sum(count.v == 0)/length(count.v)
 
   fit.nb <- fit_gam(dat, zinf = FALSE, use_weights = FALSE, k = k, knots = knots)
-  fit.zinb <- zinbgam(expv ~ s(pseudotime, k = k, bs = "cr"), ~ logmu,
+  fit.zinb <- zinbgam(fit.formula, ~ logmu,
                       data = dat, knots = knots, k = k)
   aic.zinb <- fit.zinb$aic
   aic.nb <- AIC(fit.nb)
@@ -115,7 +116,7 @@ pseudotimeDE <- function(gene,
   edf1 <- sum(fit$edf1)
   s.pv <- summary(fit)$s.pv
 
-  ## Simon 2012 test statistic for sample
+  ## Simon 2012 test statistic for sample. Copy from mgcv, but drop the subsampling part.
   res.df <- -1
   p <- fit$coefficients
   V <- fit$Vp
@@ -126,7 +127,7 @@ pseudotimeDE <- function(gene,
   Tr <- Tr$stat
 
   ##  Subsample Tr
-  n.boot <- length(boot.tbl)
+  n.boot <- length(sub.tbl)
 
   ## Redefine count.v since the original fit not necessarily includes all cell
   expv <- assays(sce)$counts[gene, ]
@@ -147,7 +148,7 @@ pseudotimeDE <- function(gene,
     names(cell_weights) <- colnames(sce)}
 
   ## Start permutation
-  boot_tbl <- tibble(id = seq_len(length(boot.tbl)), time.res = boot.tbl)
+  boot_tbl <- tibble(id = seq_len(length(sub.tbl)), time.res = sub.tbl)
 
   boot_models <- boot_tbl %>%
     dplyr::mutate(splits = purrr::map(time.res, function(x){
@@ -170,17 +171,17 @@ pseudotimeDE <- function(gene,
                     return(Tr)
                   }))
 
-  ## permutation p-value
+  ## empirical permutation p-value
   s.pv.p <- (sum(Tr <= boot_models$stat)+1)/(n.boot+1)
 
+  ## parametric permutation p-value
   smooth_pv <- suppressMessages(cal_pvalue(y = Tr, x = boot_models$stat, plot.fit = FALSE))
 
   return(list(fix.pv = s.pv,
-              permut.pv = s.pv.p,
-              smooth.pv = smooth_pv,
+              emp.pv = s.pv.p,
+              para.pv = smooth_pv,
               rank = rank,
-              Tr = Tr,
-              Tr.dist = boot_models$stat,
+              gam.fit = fit,
               zinf = zinf,
               aic = aic,
               expv.quantile = expv.quantile,
@@ -188,8 +189,6 @@ pseudotimeDE <- function(gene,
               expv.zero = expv.zero
   ))
 }
-
-
 
 
 ## Define the fit_gam function
@@ -200,18 +199,18 @@ fit_gam <- function(dat, nthreads = 1, zinf, use_weights, knots, k) {
 
   fit.gam <- tryCatch(expr = {
     if(!zinf) {
-      fit <- gam(expv ~ s(pseudotime, k = k, bs = "cr"), family = nb(link = "log"),
+      fit <- gam(fit.formula, family = nb(link = "log"),
                  data = dat,
                  knots = list(pseudotime = knots), control = list(nthreads = nthreads))
     }
     else {
       if(!use_weights) {
-        fit <- zinbgam(expv ~ s(pseudotime, k = k, bs = "cr"), ~ logmu,
+        fit <- zinbgam(fit.formula, ~ logmu,
                        data = dat, knots = knots, k = k)
         fit <- fit$fit.mu
       }
       else {
-        fit <- gam(expv ~ s(pseudotime, k = k, bs = "cr"), family = nb(link = "log"),
+        fit <- gam(fit.formula, family = nb(link = "log"),
                    data = dat,
                    knots = list(pseudotime = knots), control = list(nthreads = nthreads), weights = cellWeights)
       }
@@ -222,7 +221,10 @@ fit_gam <- function(dat, nthreads = 1, zinf, use_weights, knots, k) {
   fit.gam
 }
 
-## Zero Inflated NB GAM
+
+
+
+## Zero Inflated NB GAM. Refer to https://github.com/AustralianAntarcticDataCentre/zigam.
 ## Log ZINB density
 dzinb.log <- function(x,mu,pi,shape) {
   logp <- log(1 - pi)+dnbinom(x,size=shape,mu=mu,log=T)
@@ -232,9 +234,16 @@ dzinb.log <- function(x,mu,pi,shape) {
 
 ## Main function
 
-zinbgam <- function(mu.formula, pi.formula, data,
-                    mu=NULL, pi=NULL,
-                    min.em=5,max.em=50,tol=1.0e-4, k, knots) {
+zinbgam <- function(mu.formula,
+                    pi.formula,
+                    data,
+                    mu=NULL,
+                    pi=NULL,
+                    min.em=5,
+                    max.em=50,
+                    tol=1.0e-4,
+                    k,
+                    knots) {
   ## As matrix
   #data <- data.frame(data)
   ## Extract the response y
@@ -459,7 +468,7 @@ simf <- function(x,a,df,nq=50) {
 
 
 ## Gamma Mixture Fit of Permutation p-value
-# Gamma / Two Component Gamma Mixture Permutation P-value
+# Gamma / Two Component Gamma Mixture Permutation p-value (parametric p-value)
 
 ### Mix gamma pdf
 dgammamix <- function(x, lambda, gamma.pars, k = dim(gamma.pars)[2]) {
