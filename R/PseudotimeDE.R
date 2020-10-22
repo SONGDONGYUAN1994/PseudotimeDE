@@ -37,12 +37,12 @@
 #' @importFrom fitdistrplus fitdist
 #' @importFrom mixtools gammamixEM
 #'
-#' @export PseudotimeDE
+#' @export pseudotimeDE
+#'
 #' @author Dongyuan Song
 
 
-
-PseudotimeDE <- function(gene,
+pseudotimeDE <- function(gene,
                          ori.tbl,
                          sub.tbl,
                          sce,
@@ -58,12 +58,8 @@ PseudotimeDE <- function(gene,
   ## Set seed
   set.seed(seed)
 
-  ## Make the k parameter global. Be cautious about this.
-  #k <<- k
+  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
-  fit.formula <- as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr'"))
-
-  n.boot <- dim(sub.tbl)[1]
   num_cell <- length(ori.tbl$cell)
   pseudotime <- ori.tbl$pseudotime
 
@@ -97,7 +93,6 @@ PseudotimeDE <- function(gene,
   }
   else if (model == "auto") {
     if(aic.nb - aic.zinb > aicdiff) {
-      print(aic.nb - aic.zinb)
       fit <- fit.zinb
       zinf <- TRUE
       aic <- aic.zinb
@@ -126,6 +121,20 @@ PseudotimeDE <- function(gene,
   Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
   Tr <- Tr$stat
 
+  if(is.null(sub.tbl)) {
+    return(list(fix.pv = s.pv,
+                emp.pv = NA,
+                para.pv = NA,
+                rank = rank,
+                gam.fit = fit,
+                zinf = zinf,
+                aic = aic,
+                expv.quantile = expv.quantile,
+                expv.mean = expv.mean,
+                expv.zero = expv.zero
+    ))
+  }
+
   ##  Subsample Tr
   n.boot <- length(sub.tbl)
 
@@ -148,7 +157,7 @@ PseudotimeDE <- function(gene,
     names(cell_weights) <- colnames(sce)}
 
   ## Start permutation
-  boot_tbl <- tibble(id = seq_len(length(sub.tbl)), time.res = sub.tbl)
+  boot_tbl <- tibble::tibble(id = seq_len(length(sub.tbl)), time.res = sub.tbl)
 
   boot_models <- boot_tbl %>%
     dplyr::mutate(splits = purrr::map(time.res, function(x){
@@ -196,6 +205,8 @@ PseudotimeDE <- function(gene,
 fit_gam <- function(dat, nthreads = 1, zinf, use_weights, knots, k) {
   if(use_weights) {cellWeights <- dat$cellWeights}
   else cellWeights <- rep(1, dim(dat)[1])
+
+  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
   fit.gam <- tryCatch(expr = {
     if(!zinf) {
@@ -509,6 +520,13 @@ rgammamix <- function(n = 1, lambda, gamma.pars, k = dim(gamma.pars)[2]) {
   r
 }
 
+### Suppress print in mixtools
+quiet <- function(x) {
+  sink(tempfile())
+  on.exit(sink())
+  invisible(force(x))
+}
+
 ### Calculate p-value
 cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) {
   x <- as.vector(x)
@@ -521,12 +539,12 @@ cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) 
 
   ## gamma mix fit
   if(test.res$p.value < 1) {
-    fit2 <- gammamixEM(x, maxit = 1000, k = 2, epsilon = epsilon, mom.start = TRUE, maxrestarts = 20)
+    fit2 <- quiet(gammamixEM(x, maxit = 1000, k = 2, epsilon = epsilon, mom.start = TRUE, maxrestarts = 20))
 
     ## three random start
     for (i in 1:3) {
       set.seed(i)
-      fit.temp <- gammamixEM(x, maxit = 1000, k = 2, epsilon = epsilon, maxrestarts = 20, lambda = c(i/10, 1-i/10))
+      fit.temp <- quiet(gammamixEM(x, maxit = 1000, k = 2, epsilon = epsilon, maxrestarts = 20, lambda = c(i/10, 1-i/10)))
       if(fit2$loglik < fit.temp$loglik) fit2 <- fit.temp
     }
 
@@ -537,9 +555,8 @@ cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) 
 
     if(LRT.p < p.thresh) {
       p <- pgammamix(y, lambda = fit2$lambda, gamma.pars = fit2$gamma.pars)
-      if(test.res2$p.value < p.thresh) print(test.res2$p.value)
+      if(test.res2$p.value < p.thresh) warning(paste0("Final fit does not pass AD test, with p-value ", test.res2$p.value))
     }
   }
-  ## return p
   p
 }
