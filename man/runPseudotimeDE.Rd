@@ -15,7 +15,7 @@ runPseudotimeDE(
   fix.weight = TRUE,
   aicdiff = 10,
   seed = 123,
-  mc.cores = 20
+  mc.cores = 2
 )
 }
 \arguments{
@@ -38,6 +38,8 @@ runPseudotimeDE(
 \item{aicdiff}{A numeric variable of the threshold of modle selection. Only works when \code{model = `auto`}.}
 
 \item{seed}{A numeric variable of the random seed. It mainly affects the fitting of null distribution.}
+
+\item{mc.cores}{Number of cores for computing.}
 }
 \value{
 A tibble of summary results of genes

@@ -58,6 +58,9 @@ pseudotimeDE <- function(gene,
   ## Set seed
   set.seed(seed)
 
+  ## Avoid R checking warning
+  splits <- time.res <- NULL
+
   fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
   num_cell <- length(ori.tbl$cell)
@@ -533,7 +536,7 @@ cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) 
 
   ## gamma fit
   fit1 <- suppressWarnings(fitdist(x, "gamma"))
-  test.res <- goftest::ad.test(x, "pgamma", shape = fit1$estimate[1], rate = fit1$estimate[2])
+  test.res <- goftest::ad.test(x, null = "pgamma", shape = fit1$estimate[1], rate = fit1$estimate[2])
 
   p <- pgamma(y, shape = fit1$estimate[1], rate = fit1$estimate[2], lower.tail = FALSE)
 
@@ -548,7 +551,7 @@ cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) 
       if(fit2$loglik < fit.temp$loglik) fit2 <- fit.temp
     }
 
-    test.res2 <- goftest::ad.test(x, "pgammamix", lambda = fit2$lambda, gamma.pars = fit2$gamma.pars, lower.tail = TRUE)
+    test.res2 <- goftest::ad.test(x, null = pgammamix, lambda = fit2$lambda, gamma.pars = fit2$gamma.pars, lower.tail = TRUE)
 
     ## LRT gamma vs gamma mix
     LRT.p <- pchisq(2*(fit2$loglik - fit1$loglik), df = 3, lower.tail = FALSE)
@@ -558,5 +561,6 @@ cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) 
       if(test.res2$p.value < p.thresh) warning(paste0("Final fit does not pass AD test, with p-value ", test.res2$p.value))
     }
   }
+  #
   p
 }

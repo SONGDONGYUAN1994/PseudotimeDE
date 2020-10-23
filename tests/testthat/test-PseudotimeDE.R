@@ -1,6 +1,5 @@
-test_that("multiplication works", {
-  expect_equal(2 * 2, 4)
-})
+context("Run DE")
+library(PseudotimeDE)
 
 test_that("PseudotimeDE works", {
   data("LPS_sce")
@@ -11,7 +10,7 @@ test_that("PseudotimeDE works", {
                                     ori.tbl = LPS_ori_tbl,
                                     sub.tbl = LPS_sub_tbl[1:100],
                                     sce = LPS_sce,
-                                    model = "auto")
+                                    model = "nb")
   expect_equal(length(res1), 10)
 
   res2 <- PseudotimeDE::pseudotimeDE(gene = "CCL5",

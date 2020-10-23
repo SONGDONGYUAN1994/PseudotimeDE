@@ -13,7 +13,7 @@
 #' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.
 #' @param aicdiff A numeric variable of the threshold of modle selection. Only works when \code{model = `auto`}.
 #' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
-#' @param mc.cores Number of cores
+#' @param mc.cores Number of cores for computing.
 #'
 #' @return A tibble of summary results of genes
 #'
@@ -30,9 +30,9 @@ runPseudotimeDE <- function(gene.vec,
                             fix.weight = TRUE,
                             aicdiff = 10,
                             seed = 123,
-                            mc.cores = 20) {
+                            mc.cores = 2) {
   set.seed(seed)
-  res <- parallel::mclapply(gene.vec, pseudotimeDE,
+  res <- parallel::mclapply(gene.vec, PseudotimeDE::pseudotimeDE,
                             ori.tbl = ori.tbl,
                             sub.tbl = sub.tbl,
                             sce = sce,
