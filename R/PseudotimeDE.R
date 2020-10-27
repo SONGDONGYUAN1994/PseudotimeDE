@@ -4,13 +4,13 @@
 #' Test if one gene is differentially expressed along pseudotime.
 #' @param gene A string of gene name. It should be one of the row names in sce.
 #' @param ori.tbl A tibble or dataframe which contains the original cells and pseudotime as two columns.
-#' @param sub.tbl A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as ori.tbl.
+#' @param sub.tbl A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as \code{ori.tbl}.
 #' @param sce A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.
 #' @param model A string of the model name. One of \code{nb}, \code{zinb} and \code{auto}.
 #' @param k A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.
 #' @param knots A numeric vector of the location of knots.
 #' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.
-#' @param aicdiff A numeric variable of the threshold of modle selection. Only works when \code{model = `auto`}.
+#' @param aicdiff A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.
 #' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
 #'
 #'

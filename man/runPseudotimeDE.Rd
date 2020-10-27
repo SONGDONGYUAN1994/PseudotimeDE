@@ -2,7 +2,7 @@
 % Please edit documentation in R/runPseudotimeDE.R
 \name{runPseudotimeDE}
 \alias{runPseudotimeDE}
-\title{Perform Differential Expression Test on A List of Genes}
+\title{Perform Differential Expression Test on a List of Genes}
 \usage{
 runPseudotimeDE(
   gene.vec,
@@ -15,7 +15,8 @@ runPseudotimeDE(
   fix.weight = TRUE,
   aicdiff = 10,
   seed = 123,
-  mc.cores = 2
+  mc.cores = 2,
+  SIMPLIFY = TRUE
 )
 }
 \arguments{
@@ -35,11 +36,13 @@ runPseudotimeDE(
 
 \item{fix.weight}{A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.}
 
-\item{aicdiff}{A numeric variable of the threshold of modle selection. Only works when \code{model = `auto`}.}
+\item{aicdiff}{A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.}
 
 \item{seed}{A numeric variable of the random seed. It mainly affects the fitting of null distribution.}
 
 \item{mc.cores}{Number of cores for computing.}
+
+\item{SIMPLIFY}{A logic variable whether to return a tibble (TRUE) or a list of lists (FALSE). Default is TRUE.}
 }
 \value{
 A tibble of summary results of genes
@@ -47,6 +50,17 @@ A tibble of summary results of genes
 \description{
 Test if each gene in a list of genes is differentially expressed along pseudotime.
 A wrapper of \code{PseudotimeDE::pseudotimeDE}.
+}
+\examples{
+data("LPS_sce")
+data("LPS_ori_tbl")
+data("LPS_sub_tbl")
+res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+ori.tbl = LPS_ori_tbl,
+sub.tbl = LPS_sub_tbl,
+sce = LPS_sce,
+model = "nb")
+
 }
 \author{
 Dongyuan Song

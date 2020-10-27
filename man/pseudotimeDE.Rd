@@ -22,7 +22,7 @@ pseudotimeDE(
 
 \item{ori.tbl}{A tibble or dataframe which contains the original cells and pseudotime as two columns.}
 
-\item{sub.tbl}{A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as ori.tbl.}
+\item{sub.tbl}{A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as \code{ori.tbl}.}
 
 \item{sce}{A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.}
 
@@ -34,7 +34,7 @@ pseudotimeDE(
 
 \item{fix.weight}{A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.}
 
-\item{aicdiff}{A numeric variable of the threshold of modle selection. Only works when \code{model = `auto`}.}
+\item{aicdiff}{A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.}
 
 \item{seed}{A numeric variable of the random seed. It mainly affects the fitting of null distribution.}
 }

@@ -1,16 +1,16 @@
 Package: PseudotimeDE
 Type: Package
-Title: A Robust Differential Expression Anlysis Method Incorperating Pseudotime Uncertainty
+Title: Inference of differential gene expression along cell pseudotime with well-calibrated p-values from single-cell RNA sequencing data
 Version: 0.1.0
 Author: Dongyuan Song
 Maintainer: Dongyuan Song <dongyuansong@ucla.edu>
-Description: PseudotimeDE performs the differential expression analysis of genes along the pseudotime.
-    Given a single cell RNA-seq data and a pseudotime inference method, pseudotimeDE returns the p-values of each gene.
+Description: PseudotimeDE performs the differential expression (DE) analysis of genes along the pseudotime.
+    Given a single cell RNA-seq data and a pseudotime inference method, pseudotimeDE returns the p-value of each gene.
 Depends: R (>= 3.6.0)
 Imports: SummarizedExperiment,
          SingleCellExperiment,
          mgcv,
-         tidyverse,
+         tidyr,
          mixtools,
          goftest,
          Rcpp,
@@ -20,7 +20,8 @@ Imports: SummarizedExperiment,
          fitdistrplus,
          methods,
          magrittr,
-         tibble
+         tibble,
+         ggplot2
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
