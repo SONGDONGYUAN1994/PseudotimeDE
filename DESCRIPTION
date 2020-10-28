@@ -21,10 +21,15 @@ Imports: SummarizedExperiment,
          methods,
          magrittr,
          tibble,
-         ggplot2
+         ggplot2,
+         slingshot,
+         BiocStyle
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.0
 Suggests: 
-    testthat
+    testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

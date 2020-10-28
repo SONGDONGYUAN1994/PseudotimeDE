@@ -1,0 +1,164 @@
+---
+title: "A quick start of PseudotimeDE"
+author: "Dongyuan Song"
+date: "`r BiocStyle::doc_date()`"
+output:
+  BiocStyle::html_document:
+    highlight: pygments
+    toc: true
+    fig_width: 6
+    fig_height: 3
+vignette: >
+  %\VignetteIndexEntry{quickstart}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(tidy = FALSE, cache = TRUE, dev = "png",
+                      message = FALSE, error = FALSE, warning = TRUE)
+```
+
+# Introduction
+
+In the investigation of molecular mechanisms underlying cell state changes, a crucial analysis is to identify differentially expressed (DE) genes along a continuous cell trajectory, which can be estimated by pseudotime inference (also callsed trajectory inference) from single-cell RNA-sequencing (scRNA-seq) data. However, the uncertainty in pseudotime inference is ignored in existing methods. *PseudotimeDE* is designed to generate **well-calibrated $p$-values**. *PseudotimeDE* is flexible in allowing users to specify the pseudotime inference method and to choose the appropriate model for scRNA-seq data.
+
+```{r setup}
+suppressPackageStartupMessages(library(PseudotimeDE))
+suppressPackageStartupMessages(library(SingleCellExperiment))
+suppressPackageStartupMessages(library(slingshot))
+suppressPackageStartupMessages(library(tibble))
+suppressPackageStartupMessages(library(dplyr))
+```
+
+In this quickstart guide, we demonstrate the basic functionality of the *PseudotimeDE* package. *PseudotimeDE* package allows users to specify the pseudotime inference method, but we will use `r Biocpkg("slingshot")` as the example in our analysis.
+
+# LPS dataset
+
+```{r load-lpssce}
+data(LPS_sce, package = "PseudotimeDE")
+```
+
+This Smart-seq dataset contains primary mouse dendritic cells (DCs) stimulated with lipopolysaccharide (LPS), available at Gene Expression Omnibus (GEO) under accession ID GSE45719. Here the dataset has been stored as a `SingleCellExperiment` object. For more information on how to construct it, please check `r Biocpkg("SingleCellExperiment")`.
+
+# Perform pseudotime inference on the original dataset
+
+We use *slingshot* to infer the pseudotime on the original `LPS_sce`. Since we have the prior knowledge that this dataset should be a single lineage, we let *slingshot* to generate only one lineage.
+
+```{r fit-slingshotori}
+norms <- as.matrix(t(assays(LPS_sce)$norms))
+rd <- prcomp(norms, scale. = FALSE)$x[, 1:2]
+
+reducedDims(LPS_sce) <- SimpleList(PCA = rd)
+colData(LPS_sce)$cl <- 1
+
+fit_ori <- slingshot(LPS_sce, reducedDim = 'PCA', clusterLabels = "cl")
+LPS_ori_tbl <- tibble(cell = colnames(LPS_sce), time = colData(LPS_sce)$slingPseudotime_1)
+```
+
+# Perform pseudotime inference on subsamples
+
+The key step of *PseudotimeDE* is to use **subsampling** to get the uncertainty of inferred pseudotime. The default is using 80% cells. To save time, here we only generate 2 subsamples. The defulat is using 1000 subsamples, although 100 subsamples show similar performance in our empirical study. Of course, the more subsamples, the more accurate results. 
+
+```{r getsub}
+set.seed(123)
+options(mc.cores = 2)
+LPS_index <- mclapply(seq_len(2), function(x) {
+  sample(x = c(1:dim(LPS_sce)[2]), size = 0.8*dim(LPS_sce)[2], replace = FALSE)
+})
+```
+
+Users should use the exact same procedure as they used in pseudotime inference on the original dataset.
+
+```{r fit-slingshotsub}
+LPS_sub_tbl <- mclapply(LPS_index, function(x, sce) {
+  sce <- sce[, x]
+  norms <- as.matrix(t(assays(sce)$norms))
+  rd <- prcomp(norms, scale. = FALSE)$x[, 1:2]
+  reducedDims(sce) <- SimpleList(PCA = rd)
+
+  fit <- slingshot(sce, reducedDim = 'PCA', clusterLabels = "cl")
+  tbl <- tibble(cell = colnames(sce), time = colData(sce)$slingPseudotime_1)
+  tbl
+}, sce = LPS_sce)
+```
+
+We load the example `LPS_ori_tbl` and `LPS_sub_tbl` for the next DE test.
+```{r load-tbl}
+data(LPS_ori_tbl, package = "PseudotimeDE")
+data(LPS_sub_tbl, package = "PseudotimeDE")
+```
+
+Users can check the spreadness of the inferred pseudotime on subsamples.
+```{r visual-sub}
+PseudotimeDE::plotUncertainty(LPS_ori_tbl, LPS_sub_tbl)
+```
+
+
+
+# Perform DE test
+
+To save time, we only run the DE test on two example genes (*CCL5*, *CXCL10*) and 100 subsamples. Note that the DE test can be time-consuming since it is a permutation test; we strongly encourage users to allocate at least 10 cores. We specify the distribution as Negative Binomial (`nb`) here.
+
+```{r fit-DE}
+res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+                                     ori.tbl = LPS_ori_tbl,
+                                     sub.tbl = LPS_sub_tbl[1:100],
+                                     sce = LPS_sce,
+                                     model = "nb")
+```
+
+We can check the output.
+
+```{r res-DE}
+print(res)
+```
+
+`para.pv` is the most important output - the $p$-values of DE test. `rank` measures how wiggling the gene trajectory is. `gam.fit` is the fitted Generalized Additive Model (GAM).
+
+Although we do not encourage this, users may choose completely ignore the uncertainty of inferred pseudotime, and use the $p$-values based on an asymptotic distribution (`fix.pv`). Note that `fix.pv` usually do not behaive correctly under the null (i.g., following a $\operatorname{Uniform}(0, 1)$ distribution). The good thing is that only caluclating `fix.pv` makes the DE test very fast.
+
+```{r fit-fixpv}
+res_fix <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+                                     ori.tbl = LPS_ori_tbl,
+                                     sub.tbl = NULL, # Set as NULL to only get fix.pv
+                                     sce = LPS_sce,
+                                     model = "nb")
+
+print(res_fix)
+```
+
+We can visualize the gene trajectories estimated by `gam.fit`.
+
+```{r visual-gam}
+PseudotimeDE::plotCurve(gene.vec = res$gene,
+                                        ori.tbl = LPS_ori_tbl,
+                                        sce = LPS_sce,
+                                        model.fit = res$gam.fit)
+```
+
+The "dropout" problem (extra zeros) can be captured by using Zero-Inflated Negative-Binomial model (ZINB). In general, we believe `model = 'nb'` should be used in most cases since using ZINB may cause lower power (see this paper [Naught all zeros in sequence count data are the same](https://www.sciencedirect.com/science/article/pii/S2001037020303986?via%3Dihub)). However, if needed, users may choose the auto decision (`model = 'auto'`) or force to use ZINB (`model = 'zinb'`).
+
+```{r fit-zinb}
+res_zinb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+                                     ori.tbl = LPS_ori_tbl,
+                                     sub.tbl = LPS_sub_tbl[1:100],
+                                     sce = LPS_sce,
+                                     model = "auto")
+
+print(res_zinb)
+```
+
+We can check the fitted curve by `zinb`.
+```{r vis-zinbgam}
+PseudotimeDE::plotCurve(gene.vec = res_zinb$gene,
+                                        ori.tbl = LPS_ori_tbl,
+                                        sce = LPS_sce,
+                                        model.fit = res_zinb$gam.fit)
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

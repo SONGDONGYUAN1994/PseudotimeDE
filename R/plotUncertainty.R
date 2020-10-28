@@ -52,7 +52,7 @@ plotUncertainty <- function(ori.tbl,
     theme_bw() +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"),
           axis.text.y=element_blank(),
-          aspect.ratio = 1, legend.position = "none")
+          aspect.ratio = 1, legend.position = "right")
 
   p
 }
