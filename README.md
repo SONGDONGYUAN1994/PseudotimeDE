@@ -8,7 +8,7 @@ Introduction
 Installation
 ------------
 
-The package is not on Bioconductor or CRAN yet. For installation please use the following codes in `R`
+The package is not on Bioconductor or CRAN yet. For installation please use the following codes in `R`.
 
 ``` r
 install.packages("devtools")
@@ -16,10 +16,11 @@ library(devtools)
 
 install_github("SONGDONGYUAN1994/PseudotimeDE")
 ```
+Please notice that `PseudotimeDE` can be computationally intensive; we recommend users to allocate at least 10 cores unless they want to ignore the uncertainty of inferred pseudotime.
 
 Quick start
 -----------
 
-For usage, please check the [Vignette](https://github.com/SONGDONGYUAN1994/PseudotimeDE/blob/master/vignettes/quickstart.Rmd)
+For usage, please check the [Vignette](https://github.com/SONGDONGYUAN1994/PseudotimeDE/blob/master/vignettes/quickstart.Rmd).
 If you meet problems, please contact <dongyuansong@ucla.edu>. 
 
