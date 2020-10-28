@@ -150,7 +150,7 @@ print(res_zinb)
 ```
 
 We can check the fitted curve by `zinb`.
-```{r vis-zinbgam}
+```{r visual-zinbgam}
 PseudotimeDE::plotCurve(gene.vec = res_zinb$gene,
                                         ori.tbl = LPS_ori_tbl,
                                         sce = LPS_sce,
