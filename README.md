@@ -16,7 +16,7 @@ library(devtools)
 
 install_github("SONGDONGYUAN1994/PseudotimeDE")
 ```
-Please notice that `PseudotimeDE` can be computationally intensive; we recommend users to allocate at least 10 cores unless they want to ignore the uncertainty of inferred pseudotime.
+Please note that `PseudotimeDE` can be computationally intensive; we recommend users to allocate at least 10 cores unless they want to ignore the uncertainty of inferred pseudotime.
 
 Quick start
 -----------
