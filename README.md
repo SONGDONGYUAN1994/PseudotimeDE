@@ -1,4 +1,25 @@
 # PseudotimeDE
-a valid and robust statistical method forinferring differential gene expression along cell pseudotime(by incorporating uncertainty of pseudotime inference) from single-cell gene expression data.
+`PseudotimeDE` is a robust method that accounts for the uncertainty in pseudotime inference and thus identifies DE genes along cell pseudotime with well-calibrated $p$-values. `PseudotimeDE` is flexible in allowing users to specify the pseudotime inference method and to choose the appropriate model for scRNA-seq data.
 
-Vignettes will be available by 10272020.
+Introduction
+------------
+`PseudotimeDE` is developed to perfrom the differential expression (DE) test on genes along pseudotime (trajectory). Users can choose the pseudotime inference methods based on their preference. Basically, `PseudotimeDE` will use subsampling to capture the uncertainty of inferred pseudotime, and generate well-calibrated $p$-values.
+
+Installation
+------------
+
+The package is not on Bioconductor or CRAN yet. For installation please use the following codes in `R`
+
+``` r
+install.packages("devtools")
+library(devtools)
+
+install_github("SONGDONGYUAN1994/PseudotimeDE")
+```
+
+Quick start
+-----------
+
+For usage, please check the [Vignette](https://github.com/SONGDONGYUAN1994/PseudotimeDE/blob/master/vignettes/quickstart.Rmd)
+If you meet problems, please contact <dongyuansong@ucla.edu>. 
+
