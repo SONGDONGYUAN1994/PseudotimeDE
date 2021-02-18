@@ -30,13 +30,13 @@ pseudotimeDE(
 
 \item{k}{A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.}
 
-\item{knots}{A numeric vector of the location of knots.}
+\item{knots}{A numeric vector of the location of knots. Default is evenly distributed between 0 to 1.}
 
-\item{fix.weight}{A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.}
+\item{fix.weight}{A logic variable indicating if the ZINB-GAM will use the zero weights from the original model. Used for saving time since ZINB-GAM is computationally intense.}
 
 \item{aicdiff}{A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.}
 
-\item{seed}{A numeric variable of the random seed. It mainly affects the fitting of null distribution.}
+\item{seed}{A numeric variable of the random seed. It mainly affects the parametricfitting of null distribution.}
 }
 \value{
 A list with the components:
@@ -44,6 +44,7 @@ A list with the components:
   \item{\code{fix.pv}}{The p-value assuming the pseudotime is fixed}
   \item{\code{emp.pv}}{The permutation p-value}
   \item{\code{para.pv}}{The permutation p-value by fitting a parametric null distribution}
+  \item{\code{ad.pv}}{P-value of Anderson-Darling test on comparing null distribution and its parametric fit}
   \item{\code{rank}}{The estimated effect degree of freedom of the original model}
   \item{\code{gam.fit}}{The fitted gam model on original data}
   \item{\code{zinf}}{Whether the model is zero inflated}

@@ -1,6 +1,8 @@
 ---
 title: "A quick start of PseudotimeDE"
-author: "Dongyuan Song"
+author:   
+    name: Dongyuan Song
+    affiliation: Bioinformatics IDP, University of California, Los Angeles
 date: "`r BiocStyle::doc_date()`"
 output:
   BiocStyle::html_document:
@@ -58,7 +60,7 @@ LPS_ori_tbl <- tibble(cell = colnames(LPS_sce), time = colData(LPS_sce)$slingPse
 
 # Perform pseudotime inference on subsamples
 
-The key step of *PseudotimeDE* is to use **subsampling** to get the uncertainty of inferred pseudotime. The default is using 80% cells. To save time, here we only generate 2 subsamples. The defulat is using 1000 subsamples, although 100 subsamples show similar performance in our empirical study. Of course, the more subsamples, the more accurate results. 
+The key step of *PseudotimeDE* is to use **subsampling** to get the uncertainty of inferred pseudotime. The default is using 80% cells. To save time, here we only generate 2 subsamples. The defulat is using 1000 subsamples, although 100 subsamples show similar performance in our empirical study. Of course, more subsamples will lead to more accurate results. 
 
 ```{r getsub}
 set.seed(123)
@@ -101,11 +103,11 @@ PseudotimeDE::plotUncertainty(LPS_ori_tbl, LPS_sub_tbl)
 To save time, we only run the DE test on two example genes (*CCL5*, *CXCL10*) and 100 subsamples. Note that the DE test can be time-consuming since it is a permutation test; we strongly encourage users to allocate at least 10 cores. We specify the distribution as Negative Binomial (`nb`) here.
 
 ```{r fit-DE}
-res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+system.time(res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = LPS_sub_tbl[1:100],
                                      sce = LPS_sce,
-                                     model = "nb")
+                                     model = "nb"))
 ```
 
 We can check the output.

@@ -8,17 +8,17 @@ test_that("PseudotimeDE works", {
 
   res1 <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
                                     ori.tbl = LPS_ori_tbl,
-                                    sub.tbl = LPS_sub_tbl[1:100],
+                                    sub.tbl = LPS_sub_tbl[1:1000],
                                     sce = LPS_sce,
                                     model = "nb")
-  expect_equal(length(res1), 10)
+  expect_equal(length(res1), 11)
 
   res2 <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
                                     ori.tbl = LPS_ori_tbl,
                                     sub.tbl = NULL,
                                     sce = LPS_sce,
                                     model = "auto")
-  expect_equal(length(res2), 10)
+  expect_equal(length(res2), 11)
 
   res3 <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,

@@ -8,10 +8,10 @@
 #' @param sce A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.
 #' @param model A string of the model name. One of \code{nb}, \code{zinb} and \code{auto}.
 #' @param k A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.
-#' @param knots A numeric vector of the location of knots.
-#' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.
+#' @param knots A numeric vector of the location of knots. Default is evenly distributed between 0 to 1.
+#' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model. Used for saving time since ZINB-GAM is computationally intense.
 #' @param aicdiff A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.
-#' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
+#' @param seed A numeric variable of the random seed. It mainly affects the parametricfitting of null distribution.
 #'
 #'
 #' @return A list with the components:
@@ -19,6 +19,7 @@
 #'   \item{\code{fix.pv}}{The p-value assuming the pseudotime is fixed}
 #'   \item{\code{emp.pv}}{The permutation p-value}
 #'   \item{\code{para.pv}}{The permutation p-value by fitting a parametric null distribution}
+#'   \item{\code{ad.pv}}{P-value of Anderson-Darling test on comparing null distribution and its parametric fit}
 #'   \item{\code{rank}}{The estimated effect degree of freedom of the original model}
 #'   \item{\code{gam.fit}}{The fitted gam model on original data}
 #'   \item{\code{zinf}}{Whether the model is zero inflated}
@@ -128,6 +129,7 @@ pseudotimeDE <- function(gene,
     return(list(fix.pv = s.pv,
                 emp.pv = NA,
                 para.pv = NA,
+                ad.pv = NA,
                 rank = rank,
                 gam.fit = fit,
                 zinf = zinf,
@@ -191,7 +193,8 @@ pseudotimeDE <- function(gene,
 
   return(list(fix.pv = s.pv,
               emp.pv = s.pv.p,
-              para.pv = smooth_pv,
+              para.pv = smooth_pv$p,
+              ad.pv = smooth_pv$ad.pv,
               rank = rank,
               gam.fit = fit,
               zinf = zinf,
@@ -535,32 +538,33 @@ cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) 
   x <- as.vector(x)
 
   ## gamma fit
-  fit1 <- suppressWarnings(fitdist(x, "gamma"))
-  test.res <- goftest::ad.test(x, null = "pgamma", shape = fit1$estimate[1], rate = fit1$estimate[2])
+  fit1 <- suppressWarnings(fitdistrplus::fitdist(x, "gamma"))
+  test.res <- goftest::ad.test(x, null = "pgamma", shape = fit1$estimate[1], rate = fit1$estimate[2], estimated = TRUE)
 
   p <- pgamma(y, shape = fit1$estimate[1], rate = fit1$estimate[2], lower.tail = FALSE)
 
   ## gamma mix fit
   if(test.res$p.value < 1) {
-    fit2 <- quiet(gammamixEM(x, maxit = 1000, k = 2, epsilon = epsilon, mom.start = TRUE, maxrestarts = 20))
+    fit2 <- quiet(mixtools::gammamixEM(x, maxit = 100, k = 2, epsilon = epsilon, mom.start = TRUE, maxrestarts = 20))
 
     ## three random start
     for (i in 1:3) {
       set.seed(i)
-      fit.temp <- quiet(gammamixEM(x, maxit = 1000, k = 2, epsilon = epsilon, maxrestarts = 20, lambda = c(i/10, 1-i/10)))
+      fit.temp <- quiet(gammamixEM(x, maxit = 100, k = 2, epsilon = epsilon, maxrestarts = 20, lambda = c(i/10, 1-i/10)))
       if(fit2$loglik < fit.temp$loglik) fit2 <- fit.temp
     }
 
-    test.res2 <- goftest::ad.test(x, null = pgammamix, lambda = fit2$lambda, gamma.pars = fit2$gamma.pars, lower.tail = TRUE)
+    test.res2 <- goftest::ad.test(x, null = pgammamix, lambda = fit2$lambda, gamma.pars = fit2$gamma.pars, lower.tail = TRUE, estimated = TRUE)
 
     ## LRT gamma vs gamma mix
     LRT.p <- pchisq(2*(fit2$loglik - fit1$loglik), df = 3, lower.tail = FALSE)
 
     if(LRT.p < p.thresh) {
       p <- pgammamix(y, lambda = fit2$lambda, gamma.pars = fit2$gamma.pars)
-      if(test.res2$p.value < p.thresh) warning(paste0("Final fit does not pass AD test, with p-value ", test.res2$p.value))
+      test.res <- test.res2
+      #if(test.res2$p.value < p.thresh) warning(paste0("Final fit does not pass AD test, with p-value ", test.res2$p.value))
     }
   }
   #
-  p
+  return(list(p = p, ad.pv = test.res$p.value))
 }
