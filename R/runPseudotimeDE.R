@@ -44,7 +44,27 @@ runPseudotimeDE <- function(gene.vec,
                             mc.cores = 2,
                             SIMPLIFY = TRUE) {
   set.seed(seed)
-  res <- parallel::mclapply(gene.vec, PseudotimeDE::pseudotimeDE,
+
+  # Avoid package check error
+  expv.quantile <- gam.fit <- NULL
+
+  res <- parallel::mclapply(gene.vec, function(x, ...) {
+    cur_res <- tryCatch(expr = PseudotimeDE::pseudotimeDE(gene = x, ...), error = function(e) {
+      return(list(fix.pv = NA,
+                  emp.pv = NA,
+                  para.pv = NA,
+                  ad.pv = NA,
+                  rank = NA,
+                  gam.fit = NA,
+                  zinf = NA,
+                  aic = NA,
+                  expv.quantile = NA,
+                  expv.mean = NA,
+                  expv.zero = NA
+      ))
+    })
+    cur_res
+  },
                             ori.tbl = ori.tbl,
                             sub.tbl = sub.tbl,
                             sce = sce,
@@ -54,8 +74,7 @@ runPseudotimeDE <- function(gene.vec,
                             fix.weight = fix.weight,
                             aicdiff = aicdiff,
                             mc.cores = mc.cores)
-  # Avoid package check error
-  expv.quantile <- gam.fit <- NULL
+
 
   if(SIMPLIFY) {
     res <- simplify2array(res)
