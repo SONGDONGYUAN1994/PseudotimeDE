@@ -17,6 +17,7 @@
 plotUncertainty <- function(ori.tbl,
                             sub.tbl) {
 
+  n_subample <- length(sub.tbl)
   cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- `..density..` <- NULL
 
   Cells_true_time <- as.data.frame(ori.tbl)
@@ -38,7 +39,7 @@ plotUncertainty <- function(ori.tbl,
   Descending_unlist_pseudotimes <- data.frame(pseudotimes = unlist(Descending_pseudotimes_transpose, use.names = FALSE))
 
   cell_truetime_only <- Descending_truetimes_pseudotimes %>% dplyr::select(cell, ori_pseudotime)
-  multiple_cell_truetime <- cell_truetime_only[rep(seq_len(nrow(cell_truetime_only)), each = 1000), ]
+  multiple_cell_truetime <- cell_truetime_only[rep(seq_len(nrow(cell_truetime_only)), each = n_subample), ]
 
   na_plotdata <- cbind(Descending_unlist_pseudotimes,multiple_cell_truetime)
 
