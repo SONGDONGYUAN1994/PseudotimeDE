@@ -67,6 +67,8 @@ pseudotimeDE <- function(gene,
   num_cell <- length(ori.tbl$cell)
   pseudotime <- ori.tbl$pseudotime
 
+  num_total_cell <- dim(sce)[2]
+
   expv <- assays(sce)$counts[gene, ori.tbl$cell]
   count.v <- expv
 
@@ -154,11 +156,11 @@ pseudotimeDE <- function(gene,
 
     cell_weights <- rep(1, num_cell)
     cell_weights <- fit.zinb$prior.weights
-    names(cell_weights) <- colnames(sce)
+    names(cell_weights) <- ori.tbl$cell
   }
   else {
     ## All weights are 1
-    cell_weights <- rep(1, num_cell)
+    cell_weights <- rep(1, num_total_cell)
     names(cell_weights) <- colnames(sce)}
 
   ## Start permutation

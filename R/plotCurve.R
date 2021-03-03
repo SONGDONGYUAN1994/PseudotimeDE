@@ -27,9 +27,13 @@ plotCurve <- function(gene.vec,
                       model.fit,
                       alpha = 0.2,
                       ncol = 2) {
+  stopifnot(is.list(model.fit))
   stopifnot(length(gene.vec) == length(model.fit))
 
   cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- NULL
+
+  # Subset sce
+  sce <- sce[, ori.tbl$cell]
 
   count_mat <- assays(sce)$counts
 
