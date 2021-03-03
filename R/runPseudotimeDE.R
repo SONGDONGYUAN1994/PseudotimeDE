@@ -42,6 +42,7 @@ runPseudotimeDE <- function(gene.vec,
                             aicdiff = 10,
                             seed = 123,
                             mc.cores = 2,
+                            mc.preschedule = TRUE,
                             SIMPLIFY = TRUE) {
   set.seed(seed)
 
@@ -73,7 +74,8 @@ runPseudotimeDE <- function(gene.vec,
                             knots = knots,
                             fix.weight = fix.weight,
                             aicdiff = aicdiff,
-                            mc.cores = mc.cores)
+                            mc.cores = mc.cores,
+                            mc.preschedule = mc.preschedule)
 
 
   if(SIMPLIFY) {
