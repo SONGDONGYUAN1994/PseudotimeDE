@@ -33,3 +33,5 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+URL: https://github.com/SONGDONGYUAN1994/PseudotimeDE
+BugReports: https://github.com/SONGDONGYUAN1994/PseudotimeDE/issues
