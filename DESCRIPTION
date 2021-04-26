@@ -1,7 +1,7 @@
 Package: PseudotimeDE
 Type: Package
 Title: Inference of differential gene expression along cell pseudotime with well-calibrated p-values from single-cell RNA sequencing data
-Version: 0.1.0
+Version: 0.9.0
 Author: Dongyuan Song
 Maintainer: Dongyuan Song <dongyuansong@ucla.edu>
 Description: PseudotimeDE performs the differential expression (DE) analysis of genes along the pseudotime.
