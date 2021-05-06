@@ -14,7 +14,7 @@ The package is not on Bioconductor or CRAN yet. For installation please use the 
 install.packages("devtools")
 library(devtools)
 
-install_github("SONGDONGYUAN1994/PseudotimeDE")
+devtools::install_github("SONGDONGYUAN1994/PseudotimeDE")
 ```
 Please note that `PseudotimeDE` can be computationally intensive; we recommend users to allocate at least 10 cores unless they want to ignore the uncertainty of inferred pseudotime.
 
