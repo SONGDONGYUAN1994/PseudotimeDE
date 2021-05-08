@@ -3,6 +3,7 @@ title: "A quick start of PseudotimeDE"
 author:   
     name: Dongyuan Song
     affiliation: Bioinformatics IDP, University of California, Los Angeles
+    email: dongyuansong@ucla.edu
 date: "`r BiocStyle::doc_date()`"
 output:
   BiocStyle::html_document:
@@ -31,6 +32,7 @@ suppressPackageStartupMessages(library(SingleCellExperiment))
 suppressPackageStartupMessages(library(slingshot))
 suppressPackageStartupMessages(library(tibble))
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(scales))
 ```
 
 In this quickstart guide, we demonstrate the basic functionality of the *PseudotimeDE* package. *PseudotimeDE* package allows users to specify the pseudotime inference method, but we will use `r Biocpkg("slingshot")` as the example in our analysis.
@@ -41,7 +43,7 @@ In this quickstart guide, we demonstrate the basic functionality of the *Pseudot
 data(LPS_sce, package = "PseudotimeDE")
 ```
 
-This Smart-seq dataset contains primary mouse dendritic cells (DCs) stimulated with lipopolysaccharide (LPS), available at Gene Expression Omnibus (GEO) under accession ID GSE45719. Here the dataset has been stored as a `SingleCellExperiment` object. For more information on how to construct it, please check `r Biocpkg("SingleCellExperiment")`.
+This Smart-seq dataset contains primary mouse dendritic cells (DCs) stimulated with lipopolysaccharide (LPS). The original data is available at Gene Expression Omnibus (GEO) under accession ID GSE45719. Here the dataset has been stored as a `SingleCellExperiment` object. For more information on how to construct it, please check `r Biocpkg("SingleCellExperiment")`.
 
 # Perform pseudotime inference on the original dataset
 
@@ -55,12 +57,17 @@ reducedDims(LPS_sce) <- SimpleList(PCA = rd)
 colData(LPS_sce)$cl <- 1
 
 fit_ori <- slingshot(LPS_sce, reducedDim = 'PCA', clusterLabels = "cl")
-LPS_ori_tbl <- tibble(cell = colnames(LPS_sce), time = colData(LPS_sce)$slingPseudotime_1)
+LPS_ori_tbl <- tibble(cell = colnames(LPS_sce), pseudotime = rescale(colData(fit_ori)$slingPseudotime_1))
 ```
+Check the input format.
+```{r}
+head(LPS_ori_tbl)
+```
+
 
 # Perform pseudotime inference on subsamples
 
-The key step of *PseudotimeDE* is to use **subsampling** to get the uncertainty of inferred pseudotime. The default is using 80% cells. To save time, here we only generate 2 subsamples. The defulat is using 1000 subsamples, although 100 subsamples show similar performance in our empirical study. Of course, more subsamples will lead to more accurate results. 
+The key step of *PseudotimeDE* is to use **subsampling** to get the uncertainty of inferred pseudotime. The default is using 80% cells. To save time, here we only generate 2 subsamples. The defulat is using 1000 subsamples, although 100 subsamples show similar performance in our empirical study. Of course, more subsamples will lead to more accurate results.
 
 ```{r getsub}
 set.seed(123)
@@ -70,7 +77,7 @@ LPS_index <- mclapply(seq_len(2), function(x) {
 })
 ```
 
-Users should use the exact same procedure as they used in pseudotime inference on the original dataset.
+Users should use the exact same procedure as they used in pseudotime inference on the original dataset. 
 
 ```{r fit-slingshotsub}
 LPS_sub_tbl <- mclapply(LPS_index, function(x, sce) {
@@ -80,7 +87,15 @@ LPS_sub_tbl <- mclapply(LPS_index, function(x, sce) {
   reducedDims(sce) <- SimpleList(PCA = rd)
 
   fit <- slingshot(sce, reducedDim = 'PCA', clusterLabels = "cl")
-  tbl <- tibble(cell = colnames(sce), time = colData(sce)$slingPseudotime_1)
+  tbl <- tibble(cell = colnames(sce), pseudotime = rescale(colData(fit)$slingPseudotime_1))
+  
+  ## Make sure the direction is the same as the original pseudotime
+  merge.tbl <- left_join(tbl, LPS_ori_tbl, by = "cell")
+  
+  if(cor(merge.tbl$pseudotime.x, merge.tbl$pseudotime.y) < 0) {
+    tbl <- dplyr::mutate(tbl, pseudotime = 1-pseudotime)
+  }
+  
   tbl
 }, sce = LPS_sce)
 ```
@@ -96,8 +111,6 @@ Users can check the spreadness of the inferred pseudotime on subsamples.
 PseudotimeDE::plotUncertainty(LPS_ori_tbl, LPS_sub_tbl)
 ```
 
-
-
 # Perform DE test
 
 To save time, we only run the DE test on two example genes (*CCL5*, *CXCL10*) and 100 subsamples. Note that the DE test can be time-consuming since it is a permutation test; we strongly encourage users to allocate at least 10 cores. We specify the distribution as Negative Binomial (`nb`) here.
@@ -105,7 +118,7 @@ To save time, we only run the DE test on two example genes (*CCL5*, *CXCL10*) an
 ```{r fit-DE}
 system.time(res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
-                                     sub.tbl = LPS_sub_tbl[1:100],
+                                     sub.tbl = LPS_sub_tbl[1:50],
                                      sce = LPS_sce,
                                      model = "nb"))
 ```
@@ -144,9 +157,9 @@ The "dropout" problem (extra zeros) can be captured by using Zero-Inflated Negat
 ```{r fit-zinb}
 res_zinb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
-                                     sub.tbl = LPS_sub_tbl[1:100],
+                                     sub.tbl = LPS_sub_tbl[1:50],
                                      sce = LPS_sce,
-                                     model = "auto")
+                                     model = "zinb")
 
 print(res_zinb)
 ```
