@@ -12,7 +12,7 @@ A tibble with two cols
 }
 }
 \usage{
-LPS_ori_tbl
+data("LPS_ori_tbl")
 }
 \description{
 A tibble containing the inferred pseudotime of \code{LPS_sce} by \code{slingshot} package

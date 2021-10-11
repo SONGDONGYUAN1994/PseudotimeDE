@@ -8,7 +8,8 @@ runPseudotimeDE(
   gene.vec,
   ori.tbl,
   sub.tbl,
-  sce,
+  mat,
+  assay.use = "counts",
   model = c("nb", "zinb", "auto"),
   k = 6,
   knots = c(0:5/5),
@@ -16,6 +17,7 @@ runPseudotimeDE(
   aicdiff = 10,
   seed = 123,
   mc.cores = 2,
+  mc.preschedule = TRUE,
   SIMPLIFY = TRUE
 )
 }
@@ -26,7 +28,13 @@ runPseudotimeDE(
 
 \item{sub.tbl}{A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as ori.tbl.}
 
-\item{sce}{A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.}
+\item{mat}{The input expression data. It can be:
+(1) A SingleCellExperment object which contain the expression data;
+(2) An matrix;
+(3) A Seurat object which contain the expression data.
+Its row names should be genes and col names should be cells.}
+
+\item{assay.use}{The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.}
 
 \item{model}{A string of the model name. One of \code{nb}, \code{zinb} and \code{auto}.}
 
@@ -41,6 +49,8 @@ runPseudotimeDE(
 \item{seed}{A numeric variable of the random seed. It mainly affects the fitting of null distribution.}
 
 \item{mc.cores}{Number of cores for computing.}
+
+\item{mc.preschedule}{See \code{mclapply}. Default is TRUE.}
 
 \item{SIMPLIFY}{A logic variable whether to return a tibble (TRUE) or a list of lists (FALSE). Default is TRUE.}
 }
@@ -58,7 +68,7 @@ data("LPS_sub_tbl")
 res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
 ori.tbl = LPS_ori_tbl,
 sub.tbl = LPS_sub_tbl,
-sce = LPS_sce,
+mat = LPS_sce,
 model = "nb")
 
 }

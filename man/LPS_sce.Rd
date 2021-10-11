@@ -8,7 +8,7 @@
 A dataset with 4,016 rows and 390 cols
 }
 \usage{
-LPS_sce
+data("LPS_sce")
 }
 \description{
 A SingelCellExperiment dataset containing 4,016 genes and 390 cells

@@ -4,14 +4,28 @@
 \alias{plotCurve}
 \title{Plot the Fitted Model (Gene Trajectory)}
 \usage{
-plotCurve(gene.vec, ori.tbl, sce, model.fit, alpha = 0.2, ncol = 2)
+plotCurve(
+  gene.vec,
+  ori.tbl,
+  mat,
+  assay.use = "counts",
+  model.fit,
+  alpha = 0.2,
+  ncol = 2
+)
 }
 \arguments{
 \item{gene.vec}{A vector of genes. It should be a subset of the row names in sce.}
 
 \item{ori.tbl}{A tibble or dataframe which contains the original cells and pseudotime as two columns.}
 
-\item{sce}{A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.}
+\item{mat}{The input expression data. It can be:
+(1) A SingleCellExperment object which contain the expression data;
+(2) An matrix;
+(3) A Seurat object which contain the expression data.
+Its row names should be genes and col names should be cells.}
+
+\item{assay.use}{The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.}
 
 \item{model.fit}{A list of fitted gam models corresponding to genes in \code{gene.vec}.}
 

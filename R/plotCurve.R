@@ -4,7 +4,12 @@
 #' Plot the fitted curve (gene trajectory) by a given gam model.
 #' @param gene.vec A vector of genes. It should be a subset of the row names in sce.
 #' @param ori.tbl A tibble or dataframe which contains the original cells and pseudotime as two columns.
-#' @param sce A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.
+#' @param mat The input expression data. It can be:
+#' (1) A SingleCellExperment object which contain the expression data;
+#' (2) An matrix;
+#' (3) A Seurat object which contain the expression data.
+#' Its row names should be genes and col names should be cells.
+#' @param assay.use The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.
 #' @param model.fit A list of fitted gam models corresponding to genes in \code{gene.vec}.
 #' @param alpha A numeric value of the opacity of points. Default is 0.2.
 #' @param ncol A integer of facet column number. Default is 2.
@@ -23,7 +28,8 @@
 
 plotCurve <- function(gene.vec,
                       ori.tbl,
-                      sce,
+                      mat,
+                      assay.use = "counts",
                       model.fit,
                       alpha = 0.2,
                       ncol = 2) {
@@ -32,10 +38,18 @@ plotCurve <- function(gene.vec,
 
   cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- NULL
 
-  # Subset sce
-  sce <- sce[, ori.tbl$cell]
+  # Subset mat
+  mat <- mat[, ori.tbl$cell]
 
-  count_mat <- assays(sce)$counts
+  if(class(mat)[1] == "SingleCellExperiment") {
+    count_mat <- SummarizedExperiment::assay(mat, assay.use)
+  }
+  else if(class(mat)[1] == "SeuratObject") {
+    count_mat <- Seurat::GetAssayData(object = mat, slot = assay.use)
+  }
+  else {
+    count_mat <- mat
+  }
 
   count_mat <- cbind(t(count_mat), pseudotime = ori.tbl$pseudotime)
 

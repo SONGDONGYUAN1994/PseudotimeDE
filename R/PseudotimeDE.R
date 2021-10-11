@@ -5,7 +5,12 @@
 #' @param gene A string of gene name. It should be one of the row names in sce.
 #' @param ori.tbl A tibble or dataframe which contains the original cells and pseudotime as two columns.
 #' @param sub.tbl A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as \code{ori.tbl}.
-#' @param sce A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.
+#' @param mat The input expression data. It can be:
+#' (1) A SingleCellExperment object which contain the expression data;
+#' (2) An matrix;
+#' (3) A Seurat object which contain the expression data.
+#' Its row names should be genes and col names should be cells.
+#' @param assay.use The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.
 #' @param model A string of the model name. One of \code{nb}, \code{zinb} and \code{auto}.
 #' @param k A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.
 #' @param knots A numeric vector of the location of knots. Default is evenly distributed between 0 to 1.
@@ -46,7 +51,8 @@
 pseudotimeDE <- function(gene,
                          ori.tbl,
                          sub.tbl,
-                         sce,
+                         mat,
+                         assay.use = "counts",
                          model = c("nb", "zinb", "auto"),
                          k = 6,
                          knots = c(0:5/5),
@@ -54,10 +60,11 @@ pseudotimeDE <- function(gene,
                          aicdiff = 10,
                          seed = 123) {
 
-  ## ori.tbl is a dataframe containing cell and pseudotime. "cell" must be the same order as in sce
-  stopifnot(is(sce, "SingleCellExperiment"))
   ## Set seed
   set.seed(seed)
+
+
+  ## ori.tbl is a dataframe containing cell and pseudotime. "cell" must be the same order as in mat
 
   ## Avoid R checking warning
   splits <- time.res <- NULL
@@ -67,10 +74,23 @@ pseudotimeDE <- function(gene,
   num_cell <- length(ori.tbl$cell)
   pseudotime <- ori.tbl$pseudotime
 
-  num_total_cell <- dim(sce)[2]
+  num_total_cell <- dim(mat)[2]
 
-  expv <- assays(sce)$counts[gene, ori.tbl$cell]
-  count.v <- expv
+  #expv <- assays(sce)$counts[gene, ori.tbl$cell]
+  #count.v <- expv
+
+  if(class(mat)[1] == "SingleCellExperiment") {
+    expv <- SummarizedExperiment::assay(mat, assay.use)[gene, ori.tbl$cell]
+    count.v <- expv
+  }
+  else if(class(mat)[1] == "SeuratObject") {
+    expv <- Seurat::GetAssayData(object = mat, slot = assay.use)[gene, ori.tbl$cell]
+    count.v <- expv
+  }
+  else {
+    expv <- mat[gene, ori.tbl$cell]
+    count.v <- expv
+  }
 
   dat <- cbind(pseudotime, expv) %>% as_tibble()
 
@@ -146,9 +166,18 @@ pseudotimeDE <- function(gene,
   n.boot <- length(sub.tbl)
 
   ## Redefine count.v since the original fit not necessarily includes all cell
-  expv <- assays(sce)$counts[gene, ]
-  count.v <- expv
-
+  if(class(mat)[1] == "SingleCellExperiment") {
+    expv <- SummarizedExperiment::assay(mat, assay.use)[gene, ]
+    count.v <- expv
+  }
+  else if(class(mat)[1] == "SeuratObject") {
+    expv <- Seurat::GetAssayData(object = mat, slot = assay.use)[gene, ]
+    count.v <- expv
+  }
+  else {
+    expv <- mat[gene, ]
+    count.v <- expv
+  }
   ## Use weights
 
   if(fix.weight && zinf) {
@@ -161,7 +190,7 @@ pseudotimeDE <- function(gene,
   else {
     ## All weights are 1
     cell_weights <- rep(1, num_total_cell)
-    names(cell_weights) <- colnames(sce)}
+    names(cell_weights) <- colnames(mat)}
 
   ## Start permutation
   boot_tbl <- tibble::tibble(id = seq_len(length(sub.tbl)), time.res = sub.tbl)

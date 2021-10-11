@@ -8,7 +8,8 @@ pseudotimeDE(
   gene,
   ori.tbl,
   sub.tbl,
-  sce,
+  mat,
+  assay.use = "counts",
   model = c("nb", "zinb", "auto"),
   k = 6,
   knots = c(0:5/5),
@@ -24,7 +25,13 @@ pseudotimeDE(
 
 \item{sub.tbl}{A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as \code{ori.tbl}.}
 
-\item{sce}{A SingleCellExperment object which contain the count data. Its row names should be genes and col names should be cells.}
+\item{mat}{The input expression data. It can be:
+(1) A SingleCellExperment object which contain the expression data;
+(2) An matrix;
+(3) A Seurat object which contain the expression data.
+Its row names should be genes and col names should be cells.}
+
+\item{assay.use}{The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.}
 
 \item{model}{A string of the model name. One of \code{nb}, \code{zinb} and \code{auto}.}
 

@@ -118,8 +118,8 @@ To save time, we only run the DE test on two example genes (*CCL5*, *CXCL10*) an
 ```{r fit-DE}
 system.time(res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
-                                     sub.tbl = LPS_sub_tbl[1:50],
-                                     sce = LPS_sce,
+                                     sub.tbl = LPS_sub_tbl[1:100],
+                                     mat = LPS_sce,
                                      model = "nb"))
 ```
 
@@ -137,7 +137,7 @@ Although we do not encourage this, users may choose completely ignore the uncert
 res_fix <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = NULL, # Set as NULL to only get fix.pv
-                                     sce = LPS_sce,
+                                     mat = LPS_sce,
                                      model = "nb")
 
 print(res_fix)
@@ -148,7 +148,7 @@ We can visualize the gene trajectories estimated by `gam.fit`.
 ```{r visual-gam}
 PseudotimeDE::plotCurve(gene.vec = res$gene,
                                         ori.tbl = LPS_ori_tbl,
-                                        sce = LPS_sce,
+                                        mat = LPS_sce,
                                         model.fit = res$gam.fit)
 ```
 
@@ -158,7 +158,7 @@ The "dropout" problem (extra zeros) can be captured by using Zero-Inflated Negat
 res_zinb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = LPS_sub_tbl[1:50],
-                                     sce = LPS_sce,
+                                     mat = LPS_sce,
                                      model = "zinb")
 
 print(res_zinb)
@@ -168,7 +168,7 @@ We can check the fitted curve by `zinb`.
 ```{r visual-zinbgam}
 PseudotimeDE::plotCurve(gene.vec = res_zinb$gene,
                                         ori.tbl = LPS_ori_tbl,
-                                        sce = LPS_sce,
+                                        mat = LPS_sce,
                                         model.fit = res_zinb$gam.fit)
 ```
 

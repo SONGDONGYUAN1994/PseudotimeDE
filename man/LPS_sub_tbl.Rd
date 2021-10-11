@@ -8,7 +8,7 @@
 A list with 1,000 tibbles
 }
 \usage{
-LPS_sub_tbl
+data("LPS_sub_tbl")
 }
 \description{
 A list of tibbles containing the inferred pseudotime of each subsample
