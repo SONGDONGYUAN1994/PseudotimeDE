@@ -13,7 +13,7 @@
 #' (3) A Seurat object which contain the expression data.
 #' Its row names should be genes and col names should be cells.
 #' @param assay.use The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.
-#' @param model A string of the model name. One of \code{nb}, \code{zinb} and \code{auto}.
+#' @param model A string of the model name. One of \code{nb}, \code{zinb}, \code{gaussian} and \code{auto}.
 #' @param k A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.
 #' @param knots A numeric vector of the location of knots.
 #' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.
@@ -42,7 +42,7 @@ runPseudotimeDE <- function(gene.vec,
                             sub.tbl,
                             mat,
                             assay.use = "counts",
-                            model = c("nb", "zinb", "auto"),
+                            model = c("nb", "zinb", "gaussian","auto"),
                             k = 6,
                             knots = c(0:5/5),
                             fix.weight = TRUE,

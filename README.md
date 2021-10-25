@@ -1,6 +1,11 @@
 # PseudotimeDE
 `PseudotimeDE` is a robust method that accounts for the uncertainty in pseudotime inference and thus identifies DE genes along cell pseudotime with well-calibrated *p*-values. `PseudotimeDE` is flexible in allowing users to specify the pseudotime inference method and to choose the appropriate model for scRNA-seq data.
 
+Latest News
+------------
+2021/10/25:
+Added Gaussian as a distribution option.
+
 Introduction
 ------------
 `PseudotimeDE` is developed to perfrom the differential expression (DE) test on genes along pseudotime (trajectory). Users can choose the pseudotime inference methods based on their preference. Basically, `PseudotimeDE` will use subsampling to capture the uncertainty of inferred pseudotime, and generate well-calibrated *p*-values.
