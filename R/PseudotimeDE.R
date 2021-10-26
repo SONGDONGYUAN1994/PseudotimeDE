@@ -11,7 +11,7 @@
 #' (3) A Seurat object which contain the expression data.
 #' Its row names should be genes and col names should be cells.
 #' @param assay.use The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.
-#' @param model A string of the model name. One of \code{nb}, \code{zinb} and \code{auto}.
+#' @param model A string of the model name. One of \code{nb}, \code{zinb}, \code{gaussian} and \code{auto}.
 #' @param k A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.
 #' @param knots A numeric vector of the location of knots. Default is evenly distributed between 0 to 1.
 #' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model. Used for saving time since ZINB-GAM is computationally intense.
@@ -53,7 +53,7 @@ pseudotimeDE <- function(gene,
                          sub.tbl,
                          mat,
                          assay.use = "counts",
-                         model = c("nb", "zinb", "auto"),
+                         model = c("nb", "zinb", "gaussian" ,"auto"),
                          k = 6,
                          knots = c(0:5/5),
                          fix.weight = TRUE,
@@ -94,42 +94,65 @@ pseudotimeDE <- function(gene,
 
   dat <- cbind(pseudotime, expv) %>% as_tibble()
 
-  expv.quantile <- quantile(log(count.v + 1))
-  expv.mean <- mean(log(count.v + 1))
-  expv.zero <- sum(count.v == 0)/length(count.v)
+  if(assay.use == "logcounts"){
+    expv.quantile <- quantile(count.v)
+    expv.mean <- mean(count.v)
+    expv.zero <- sum(count.v == 0)/length(count.v)
+  }
+  else{
+    expv.quantile <- quantile(log(count.v + 1))
+    expv.mean <- mean(log(count.v + 1))
+    expv.zero <- sum(count.v == 0)/length(count.v)
+  }
 
-  fit.nb <- fit_gam(dat, zinf = FALSE, use_weights = FALSE, k = k, knots = knots)
-  fit.zinb <- zinbgam(fit.formula, ~ logmu,
-                      data = dat, knots = knots, k = k)
-  aic.zinb <- fit.zinb$aic
-  aic.nb <- AIC(fit.nb)
+  if(model == "gaussian"){
+      fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots)
+      aic.gaussian <- AIC(fit.gaussian)
+    }
+  else{
+    fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots)
+    fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k)
+    aic.zinb <- fit.zinb$aic
+    aic.nb <- AIC(fit.nb)
+    fit.zinb <- fit.zinb$fit.mu
+  }
 
   ## zinb model only uses the mu part.
-  fit.zinb <- fit.zinb$fit.mu
+
 
   if(model == "nb") {
     fit <- fit.nb
     zinf <- FALSE
+    distri <- "nb"
     aic <- aic.nb
+  }
+  else if(model == "gaussian"){
+    fit <- fit.gaussian
+    zinf <- FALSE
+    distri <- "gaussian"
+    aic <- aic.gaussian
   }
   else if (model == "zinb"){
     fit <- fit.zinb
     zinf <- TRUE
+    distri <- "zinb"
     aic <- aic.zinb
   }
   else if (model == "auto") {
     if(aic.nb - aic.zinb > aicdiff) {
       fit <- fit.zinb
       zinf <- TRUE
+      distri <- "zinb"
       aic <- aic.zinb
     }
     else {
       fit <- fit.nb
       zinf <- FALSE
+      distri <- "nb"
       aic <- aic.nb
     }
   }
-  else {stop("Specified 'method=' parameter is invalid. Must be one of 'nb', 'zinb', 'auto'.")}
+  else {stop("Specified 'method=' parameter is invalid. Must be one of 'nb', 'zinb', 'gaussian' ,'auto'.")}
 
 
 
@@ -199,7 +222,7 @@ pseudotimeDE <- function(gene,
     dplyr::mutate(splits = purrr::map(time.res, function(x){
       x <- cbind(expv = count.v[x$cell], pseudotime = base::sample(x$pseudotime), cellWeights = cell_weights[x$cell]) %>% as.data.frame(); x
     })) %>%
-    dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, zinf = zinf, use_weights = fix.weight, k = k, knots = knots),
+    dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, distribution = distri, use_weights = fix.weight, k = k, knots = knots),
                   stat = sapply(model, function(fit) {
                     if(is.logical(fit)) {Tr <- NA}
                     else {
@@ -239,19 +262,29 @@ pseudotimeDE <- function(gene,
 
 ## Define the fit_gam function
 
-fit_gam <- function(dat, nthreads = 1, zinf, use_weights, knots, k) {
+## set distribution method
+# zinf
+fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k) {
   if(use_weights) {cellWeights <- dat$cellWeights}
   else cellWeights <- rep(1, dim(dat)[1])
 
   fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
+
+
   fit.gam <- tryCatch(expr = {
-    if(!zinf) {
+    if(distribution == "nb") {
       fit <- gam(fit.formula, family = nb(link = "log"),
                  data = dat,
                  knots = list(pseudotime = knots), control = list(nthreads = nthreads))
     }
-    else {
+    else if(distribution == "gaussian"){
+      fit <- gam(fit.formula, family = gaussian(link = "identity"),
+                 data = dat,
+                 knots = list(pseudotime = knots), control = list(nthreads = nthreads))
+    }
+
+    else if(distribution == "zinb"){
       if(!use_weights) {
         fit <- zinbgam(fit.formula, ~ logmu,
                        data = dat, knots = knots, k = k)
@@ -263,6 +296,7 @@ fit_gam <- function(dat, nthreads = 1, zinf, use_weights, knots, k) {
                    knots = list(pseudotime = knots), control = list(nthreads = nthreads), weights = cellWeights)
       }
     }
+    else{stop("Specified 'distribution=' parameter is invalid. Must be one of 'nb', 'zinb', 'gaussian'.")}
     return(fit)
   },
   error = function(e){return(FALSE)})

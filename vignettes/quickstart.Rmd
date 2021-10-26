@@ -172,6 +172,28 @@ PseudotimeDE::plotCurve(gene.vec = res_zinb$gene,
                                         model.fit = res_zinb$gam.fit)
 ```
 
+We also added Gaussian option into PseudotimeDE
+
+```{r fit-gaussian}
+res_gaussian <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+                                     ori.tbl = LPS_ori_tbl,
+                                     sub.tbl = LPS_sub_tbl[1:50],
+                                     mat = LPS_sce,
+                                     model = "gaussian", assay.use = "logcounts")
+
+print(res_gaussian)
+```
+
+We can check the fitted curve by `gaussian`
+
+```{r visual-gaussiangam}
+PseudotimeDE::plotCurve(gene.vec = res_gaussian$gene,
+                                        ori.tbl = LPS_ori_tbl,
+                                        mat = LPS_sce,
+                                        model.fit = res_gaussian$gam.fit, assay.use = "logcounts")
+```
+
+
 # Session Info
 
 ```{r}
