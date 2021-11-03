@@ -11,7 +11,7 @@
 #' (3) A Seurat object which contain the expression data.
 #' Its row names should be genes and col names should be cells.
 #' @param assay.use The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.
-#' @param model A string of the model name. One of \code{nb}, \code{zinb}, \code{gaussian} and \code{auto}.
+#' @param model A string of the model name. One of \code{nb}, \code{zinb}, \code{gaussian}, \code{auto} and \code{qgam}.
 #' @param k A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.
 #' @param knots A numeric vector of the location of knots. Default is evenly distributed between 0 to 1.
 #' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model. Used for saving time since ZINB-GAM is computationally intense.
@@ -53,7 +53,7 @@ pseudotimeDE <- function(gene,
                          sub.tbl,
                          mat,
                          assay.use = "counts",
-                         model = c("nb", "zinb", "gaussian" ,"auto"),
+                         model = c("nb", "zinb", "gaussian" ,"auto", "qgam"),
                          k = 6,
                          knots = c(0:5/5),
                          fix.weight = TRUE,
@@ -105,10 +105,15 @@ pseudotimeDE <- function(gene,
     expv.zero <- sum(count.v == 0)/length(count.v)
   }
 
+
   if(model == "gaussian"){
       fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots)
       aic.gaussian <- AIC(fit.gaussian)
-    }
+  }
+  else if(model == "qgam"){
+    fit.qgam <- fit_qgam(dat, k = k)
+    aic.qgam <- AIC(fit.qgam)
+  }
   else{
     fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots)
     fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k)
@@ -152,7 +157,12 @@ pseudotimeDE <- function(gene,
       aic <- aic.nb
     }
   }
-  else {stop("Specified 'method=' parameter is invalid. Must be one of 'nb', 'zinb', 'gaussian' ,'auto'.")}
+  else if (model == "qgam"){
+    fit <- fit.qgam
+    zinf <- FALSE
+    aic <- aic.qgam
+  }
+  else {stop("Specified 'method=' parameter is invalid. Must be one of 'nb', 'zinb', 'gaussian' ,'auto', 'qgam'.")}
 
 
 
@@ -170,7 +180,7 @@ pseudotimeDE <- function(gene,
   Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
   Tr <- Tr$stat
 
-  if(is.null(sub.tbl)) {
+  if(is.null(sub.tbl) || model == "qgam") {
     return(list(fix.pv = s.pv,
                 emp.pv = NA,
                 para.pv = NA,
@@ -259,6 +269,19 @@ pseudotimeDE <- function(gene,
   ))
 }
 
+# added qgam model
+fit_qgam <- function(dat, quant = 0.5, k) {
+
+  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
+
+  fit.qgam <- tryCatch(expr = {
+    fit <- qgam::qgam(fit.formula, data = dat, qu = quant)
+    return(fit)
+  },
+  error = function(e){return(FALSE)})
+  fit.qgam
+
+}
 
 ## Define the fit_gam function
 

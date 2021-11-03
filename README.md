@@ -3,6 +3,9 @@
 
 Latest News
 ------------
+2021/11/3:
+Added QGAM(Smooth additive quantile regression model) as a model option.
+
 2021/10/25:
 Added Gaussian as a distribution option.
 
