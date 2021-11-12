@@ -12,6 +12,9 @@ Added QGAM(Smooth additive quantile regression model) as a model option.
 2021/10/25:
 Added Gaussian as a distribution option.
 
+2021/10/7:
+Added expression matrix and SeuratObject as input choices.
+
 Introduction
 ------------
 `PseudotimeDE` is developed to perfrom the differential expression (DE) test on genes along pseudotime (trajectory). Users can choose the pseudotime inference methods based on their preference. Basically, `PseudotimeDE` will use subsampling to capture the uncertainty of inferred pseudotime, and generate well-calibrated *p*-values.
