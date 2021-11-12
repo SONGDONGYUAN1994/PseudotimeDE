@@ -56,7 +56,10 @@ runPseudotimeDE <- function(gene.vec,
   # Avoid package check error
   expv.quantile <- gam.fit <- NULL
 
-  res <- parallel::mclapply(gene.vec, function(x, ...) {
+  BPPARAM <- BiocParallel::bpparam()
+  BPPARAM$workers <- mc.cores
+
+  res <- BiocParallel::bplapply(gene.vec, function(x, ...) {
     cur_res <- tryCatch(expr = PseudotimeDE::pseudotimeDE(gene = x, ...), error = function(e) {
       return(list(fix.pv = NA,
                   emp.pv = NA,
@@ -82,8 +85,7 @@ runPseudotimeDE <- function(gene.vec,
                             knots = knots,
                             fix.weight = fix.weight,
                             aicdiff = aicdiff,
-                            mc.cores = mc.cores,
-                            mc.preschedule = mc.preschedule)
+  BPPARAM = BPPARAM)
 
 
   if(SIMPLIFY) {
