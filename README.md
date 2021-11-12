@@ -3,6 +3,9 @@
 
 Latest News
 ------------
+2021/11/12:
+Replaced parallel.mclapply by BiocParallel.bplapply
+
 2021/11/3:
 Added QGAM(Smooth additive quantile regression model) as a model option.
 
