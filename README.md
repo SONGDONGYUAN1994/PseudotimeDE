@@ -38,7 +38,7 @@ Please note that `PseudotimeDE` can be computationally intensive; we recommend u
 Quick start
 -----------
 
-For usage, please check the [vignettes](https://htmlpreview.github.io/?https://github.com/JSB-UCLA/Vignettes/blob/master/A%20quick%20start%20of%20PseudotimeDE.html).
+For usage, please check the [vignettes](https://github.com/JSB-UCLA/Vignettes/blob/master/A%20quick%20start%20of%20PseudotimeDE.html).
 If you meet problems, please contact <dongyuansong@ucla.edu>. 
 
 Reference
