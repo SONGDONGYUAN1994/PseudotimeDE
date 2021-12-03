@@ -3,6 +3,9 @@
 
 Latest News
 ------------
+2021/12/02:
+Update the vignettes
+
 2021/11/12:
 Replaced parallel.mclapply by BiocParallel.bplapply
 
@@ -38,3 +41,6 @@ Quick start
 For usage, please check the [vignettes](https://htmlpreview.github.io/?https://github.com/JSB-UCLA/Vignettes/blob/master/A%20quick%20start%20of%20PseudotimeDE.html).
 If you meet problems, please contact <dongyuansong@ucla.edu>. 
 
+Reference
+-----------
+Song, D., Li, J.J. PseudotimeDE: inference of differential gene expression along cell pseudotime with well-calibrated *p*-values from single-cell RNA sequencing data. *Genome Biol* **22**, 124 (2021). https://doi.org/10.1186/s13059-021-02341-y

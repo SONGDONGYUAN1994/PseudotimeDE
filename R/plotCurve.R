@@ -36,7 +36,7 @@ plotCurve <- function(gene.vec,
   stopifnot(is.list(model.fit))
   stopifnot(length(gene.vec) == length(model.fit))
 
-  cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- NULL
+  log_counts <- cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- NULL
 
   # Subset mat
   mat <- mat[, ori.tbl$cell]
@@ -55,8 +55,8 @@ plotCurve <- function(gene.vec,
 
   if(assay.use == "logcounts"){
     count_mat <- count_mat %>% as_tibble() %>%
-      tidyr::pivot_longer(cols = gene.vec, names_to = "gene", values_to = "logcounts") %>%
-      dplyr::select(gene, pseudotime, logcounts)
+      tidyr::pivot_longer(cols = gene.vec, names_to = "gene", values_to = "log_counts") %>%
+      dplyr::select(gene, pseudotime, log_counts)
   }
   else{
     count_mat <- count_mat %>% as_tibble() %>%
@@ -73,7 +73,7 @@ plotCurve <- function(gene.vec,
   dat <- dplyr::bind_rows(dat)
 
 if(assay.use == "logcounts"){
-  p <- dat %>% ggplot(aes(x = pseudotime, y = logcounts)) + geom_point(alpha = alpha) +
+  p <- dat %>% ggplot(aes(x = pseudotime, y = log_counts)) + geom_point(alpha = alpha) +
     facet_wrap(~gene, ncol = ncol, scales = "free_y") +
     ylab("log10(count + 1)") +
     geom_line(aes(y = fitted), col = "blue", lty = "dashed", size = 1) +

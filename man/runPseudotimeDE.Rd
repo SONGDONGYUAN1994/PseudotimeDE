@@ -10,7 +10,7 @@ runPseudotimeDE(
   sub.tbl,
   mat,
   assay.use = "counts",
-  model = c("nb", "zinb", "gaussian", "auto"),
+  model = c("nb", "zinb", "gaussian", "auto", "qgam"),
   k = 6,
   knots = c(0:5/5),
   fix.weight = TRUE,
@@ -36,7 +36,7 @@ Its row names should be genes and col names should be cells.}
 
 \item{assay.use}{The \code{assay} used in SingleCellExperiment or \code{slot} used in Seurat. Default is \code{counts}.}
 
-\item{model}{A string of the model name. One of \code{nb}, \code{zinb}, \code{gaussian} and \code{auto}.}
+\item{model}{A string of the model name. One of \code{nb}, \code{zinb}, \code{gaussian}, \code{auto} and \code{qgam}.}
 
 \item{k}{A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.}
 

@@ -180,6 +180,7 @@ pseudotimeDE <- function(gene,
   Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
   Tr <- Tr$stat
 
+  ## Matteo 2020 qgam JASA
   if(is.null(sub.tbl) || model == "qgam") {
     return(list(fix.pv = s.pv,
                 emp.pv = NA,
@@ -297,12 +298,12 @@ fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k) {
 
   fit.gam <- tryCatch(expr = {
     if(distribution == "nb") {
-      fit <- gam(fit.formula, family = nb(link = "log"),
+      fit <- mgcv::gam(fit.formula, family = nb(link = "log"),
                  data = dat,
                  knots = list(pseudotime = knots), control = list(nthreads = nthreads))
     }
     else if(distribution == "gaussian"){
-      fit <- gam(fit.formula, family = gaussian(link = "identity"),
+      fit <- mgcv::gam(fit.formula, family = stats::gaussian(link = "identity"),
                  data = dat,
                  knots = list(pseudotime = knots), control = list(nthreads = nthreads))
     }
@@ -314,7 +315,7 @@ fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k) {
         fit <- fit$fit.mu
       }
       else {
-        fit <- gam(fit.formula, family = nb(link = "log"),
+        fit <- mgcv::gam(fit.formula, family = nb(link = "log"),
                    data = dat,
                    knots = list(pseudotime = knots), control = list(nthreads = nthreads), weights = cellWeights)
       }
@@ -360,7 +361,7 @@ zinbgam <- function(mu.formula,
   pi.formula <- update(pi.formula, z ~ .)
 
   ## Get inital NB fit
-  fit.gam <- gam(mu.formula,
+  fit.gam <- mgcv::gam(mu.formula,
                  data = data, family = nb(link = "log"), knots = list(pseudotime = knots))
   ## Set initial pi, mu
   if(is.null(mu)) mu <- fitted(fit.gam)
@@ -376,8 +377,8 @@ zinbgam <- function(mu.formula,
     data$mu <- mu
     data$logmu <- log(mu)
     ## Update models for current iteration
-    fit.pi <- suppressWarnings(gam(pi.formula,family=binomial(),data=data))
-    fit.mu <- suppressWarnings(gam(mu.formula,weights=1-z,family=nb(link = log), data=data, knots = list(pseudotime = knots)))
+    fit.pi <- suppressWarnings(mgcv::gam(pi.formula,family=binomial(),data=data))
+    fit.mu <- suppressWarnings(mgcv::gam(mu.formula,weights=1-z,family=nb(link = log), data=data, knots = list(pseudotime = knots)))
     pi <- predict(fit.pi,type="response")
     mu <- predict(fit.mu,type="response")
     theta <- fit.mu$family$getTheta(TRUE)
