@@ -41,6 +41,12 @@ Quick start
 For usage, please check the [vignettes](https://htmlpreview.github.io/?https://rpubs.com/dongyuansong/842884).
 If you meet problems, please contact <dongyuansong@ucla.edu>. 
 
+Clarification
+-----------
+`PseudotimeDE` assumes that the latent pseudotime **does** exists and your pseudotime inference method can somehow capture it. If there is no latent pseudotime at all (e.g., the data is random Poisson), and you use the first PC of your data as the pseudotime, you will probabily fail to control the type 1 error (in a simpler word, you may still find some DE genes though the data is just random points). This phenomenon is related to the weill-known **double dipping** problem. We appreciate Dr. Daniela Witten, Dr. Anna Neufeld and Dr. Lucy Gao for raising this nice example.
+
+We are currently actively working on this problem!
+
 Reference
 -----------
 Song, D., Li, J.J. PseudotimeDE: inference of differential gene expression along cell pseudotime with well-calibrated *p*-values from single-cell RNA sequencing data. *Genome Biol* **22**, 124 (2021). https://doi.org/10.1186/s13059-021-02341-y
