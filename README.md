@@ -43,9 +43,9 @@ If you meet problems, please contact <dongyuansong@ucla.edu>.
 
 Clarification
 -----------
-`PseudotimeDE` assumes that the latent pseudotime **does** exists and your pseudotime inference method can somehow capture it. If there is no latent pseudotime at all (e.g., the data is random Poisson), and you use the first PC of your data as the pseudotime, you will probabily fail to control the type 1 error (in a simpler word, you may still find some DE genes though the data is just random points). This phenomenon is related to the weill-known **double dipping** problem. We appreciate Dr. Daniela Witten, Dr. Anna Neufeld and Dr. Lucy Gao for raising this nice example.
+`PseudotimeDE` assumes that the latent pseudotime **does** exist and your pseudotime inference method can somehow capture it. If there is no latent pseudotime at all (e.g., the data is many iid random Poisson points), and you use the first PC of your data as the pseudotime, you will probabily fail to control the type 1 error (in a simpler word, you may still find some DE genes though the data is just random points). This phenomenon is related to the well-known **double dipping** problem. We greatly appreciate Dr. Daniela Witten, Dr. Anna Neufeld and Dr. Lucy Gao for raising this nice example.
 
-This problem may have little effect on analysing real-world scRNA-seq data (since people usually believe that there is a latent structure), but it is interesting and important. We are currently actively working on this problem!
+This problem may not be very common on analysing real-world scRNA-seq data (since people usually believe that there is a latent structure), but it is interesting and important. We are now actively working on this problem!
 
 Reference
 -----------
