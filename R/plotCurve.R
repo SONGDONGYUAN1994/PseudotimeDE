@@ -36,7 +36,7 @@ plotCurve <- function(gene.vec,
   stopifnot(is.list(model.fit))
   stopifnot(length(gene.vec) == length(model.fit))
 
-  cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- NULL
+  cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- logcounts <- NULL
 
   # Subset mat
   mat <- mat[, ori.tbl$cell]

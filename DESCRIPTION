@@ -25,7 +25,9 @@ Imports: SummarizedExperiment,
          ggplot2,
          slingshot,
          Seurat,
-         BiocStyle
+         BiocStyle,
+         qgam,
+         BiocParallel
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: false

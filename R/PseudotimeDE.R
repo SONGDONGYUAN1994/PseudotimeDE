@@ -17,7 +17,7 @@
 #' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model. Used for saving time since ZINB-GAM is computationally intense.
 #' @param aicdiff A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.
 #' @param seed A numeric variable of the random seed. It mainly affects the parametricfitting of null distribution.
-#'
+#' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.
 #'
 #' @return A list with the components:
 #' \describe{
@@ -42,6 +42,7 @@
 #' @importFrom mgcv gam nb
 #' @importFrom fitdistrplus fitdist
 #' @importFrom mixtools gammamixEM
+#' @importFrom qgam qgam
 #'
 #' @export pseudotimeDE
 #'
@@ -58,7 +59,7 @@ pseudotimeDE <- function(gene,
                          knots = c(0:5/5),
                          fix.weight = TRUE,
                          aicdiff = 10,
-                         seed = 123) {
+                         seed = 123, quant = 0.5) {
 
   ## Set seed
   set.seed(seed)
@@ -111,7 +112,7 @@ pseudotimeDE <- function(gene,
       aic.gaussian <- AIC(fit.gaussian)
   }
   else if(model == "qgam"){
-    fit.qgam <- fit_qgam(dat, k = k)
+    fit.qgam <- fit_qgam(dat, k = k, quant = quant)
     aic.qgam <- AIC(fit.qgam)
   }
   else{
@@ -270,7 +271,7 @@ pseudotimeDE <- function(gene,
 }
 
 # added qgam model
-fit_qgam <- function(dat, quant = 0.5, k) {
+fit_qgam <- function(dat, quant, k) {
 
   fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
