@@ -3,6 +3,9 @@
 
 Latest News
 ------------
+2021/12/02:
+Update the vignettes
+
 2021/11/12:
 Replaced parallel.mclapply by BiocParallel.bplapply
 
@@ -35,6 +38,15 @@ Please note that `PseudotimeDE` can be computationally intensive; we recommend u
 Quick start
 -----------
 
-For usage, please check the [vignettes](https://htmlpreview.github.io/?https://github.com/JSB-UCLA/Vignettes/blob/master/A%20quick%20start%20of%20PseudotimeDE.html).
+For usage, please check the [vignettes](https://htmlpreview.github.io/?https://rpubs.com/dongyuansong/842884).
 If you meet problems, please contact <dongyuansong@ucla.edu>. 
 
+Clarification
+-----------
+`PseudotimeDE` assumes that the latent pseudotime **does** exist and your pseudotime inference method can somehow capture it. If there is no latent pseudotime at all (e.g., the data is many iid random Poisson points), and you use the first PC of your data as the pseudotime, you will probabily fail to control the type 1 error (in a simpler word, you may still find some DE genes though the data is just random points). This phenomenon is related to the well-known **double dipping** problem. We greatly appreciate Dr. Daniela Witten, Dr. Anna Neufeld and Dr. Lucy Gao for raising this nice example.
+
+This problem may not be very common on analysing real-world scRNA-seq data (since people usually believe that there is a latent structure), but it is interesting and important. We are now actively working on this problem!
+
+Reference
+-----------
+Song, D., Li, J.J. PseudotimeDE: inference of differential gene expression along cell pseudotime with well-calibrated *p*-values from single-cell RNA sequencing data. *Genome Biol* **22**, 124 (2021). https://doi.org/10.1186/s13059-021-02341-y

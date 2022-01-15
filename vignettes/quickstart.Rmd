@@ -33,6 +33,7 @@ suppressPackageStartupMessages(library(slingshot))
 suppressPackageStartupMessages(library(tibble))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(irlba))
 ```
 
 In this quickstart guide, we demonstrate the basic functionality of the *PseudotimeDE* package. *PseudotimeDE* package allows users to specify the pseudotime inference method, but we will use `r Biocpkg("slingshot")` as the example in our analysis.
@@ -50,8 +51,7 @@ This Smart-seq dataset contains primary mouse dendritic cells (DCs) stimulated w
 We use *slingshot* to infer the pseudotime on the original `LPS_sce`. Since we have the prior knowledge that this dataset should be a single lineage, we let *slingshot* to generate only one lineage.
 
 ```{r fit-slingshotori}
-norms <- as.matrix(t(assays(LPS_sce)$norms))
-rd <- prcomp(norms, scale. = FALSE)$x[, 1:2]
+rd <- irlba::prcomp_irlba(t(logcounts(LPS_sce)), scale. = FALSE)$x[, 1:2]
 
 reducedDims(LPS_sce) <- SimpleList(PCA = rd)
 colData(LPS_sce)$cl <- 1
@@ -64,18 +64,16 @@ Check the input format.
 head(LPS_ori_tbl)
 ```
 
-
 # Perform pseudotime inference on subsamples
 
 The key step of *PseudotimeDE* is to use **subsampling** to get the uncertainty of inferred pseudotime. The default is using 80% cells. To save time, here we only generate 2 subsamples. The defulat is using 1000 subsamples, although 100 subsamples show similar performance in our empirical study. Of course, more subsamples will lead to more accurate results.
 
 ```{r getsub, warning=FALSE}
 set.seed(123)
+## Set the cores for parallelization. Note that mclapply doesnot work on Windows.
 options(mc.cores = 2)
 BPPARAM <- BiocParallel::bpparam()
 BPPARAM$workers <- 2
-
-
 LPS_index <- BiocParallel::bplapply(seq_len(2) , function(x, LPS_sce) {
   suppressPackageStartupMessages(library(SingleCellExperiment))
   sample(x = c(1:dim(LPS_sce)[2]), size = 0.8*dim(LPS_sce)[2], replace = FALSE)
@@ -95,26 +93,24 @@ LPS_sub_tbl <- BiocParallel::bplapply(LPS_index, function(x, sce, LPS_ori_tbl) {
   suppressPackageStartupMessages(library(scales))
   suppressPackageStartupMessages(library(dplyr))
   sce <- sce[, x]
-  norms <- as.matrix(t(assays(sce)$norms))
-  rd <- prcomp(norms, scale. = FALSE)$x[, 1:2]
+  rd <- irlba::prcomp_irlba(t(logcounts(sce)), scale. = FALSE)$x[, 1:2]
   reducedDims(sce) <- SimpleList(PCA = rd)
 
   fit <- slingshot(sce, reducedDim = 'PCA', clusterLabels = "cl")
   tbl <- tibble(cell = colnames(sce), pseudotime = rescale(colData(fit)$slingPseudotime_1))
   
-  ## Make sure the direction is the same as the original pseudotime
+  ## Make sure the direction of pseudotime is the same as the original pseudotime
   merge.tbl <- left_join(tbl, LPS_ori_tbl, by = "cell")
   
   if(cor(merge.tbl$pseudotime.x, merge.tbl$pseudotime.y) < 0) {
     tbl <- dplyr::mutate(tbl, pseudotime = 1-pseudotime)
   }
-  
   tbl
 }, sce = LPS_sce, LPS_ori_tbl = LPS_ori_tbl ,BPPARAM = BPPARAM)
 
 ```
 
-We load the example `LPS_ori_tbl` and `LPS_sub_tbl` for the next DE test.
+We load the example `LPS_ori_tbl` and `LPS_sub_tbl` for the next DE test. The `LPS_sub_tbl` contains the 1000 subsample-pseudotimes.
 ```{r load-tbl}
 data(LPS_ori_tbl, package = "PseudotimeDE")
 data(LPS_sub_tbl, package = "PseudotimeDE")
@@ -132,13 +128,13 @@ To save time, we only run the DE test on two example genes (*CCL5*, *CXCL10*) an
 ```{r fit-DE, warning=FALSE}
 system.time(res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
-                                     sub.tbl = LPS_sub_tbl[1:100],
-                                     mat = LPS_sce,
-                                     model = "nb"))
+                                     sub.tbl = LPS_sub_tbl[1:100], ## To save time, use 100 subsamples
+                                     mat = LPS_sce, ## You can also use a matrix or SeuratObj as the input
+                                     model = "nb",
+                                     mc.cores = 2))
 ```
 
-We can check the output.
-
+We now check the output.
 ```{r res-DE}
 print(res)
 ```
@@ -147,13 +143,16 @@ print(res)
 
 Although we do not encourage this, users may choose completely ignore the uncertainty of inferred pseudotime, and use the $p$-values based on an asymptotic distribution (`fix.pv`). Note that `fix.pv` usually do not behaive correctly under the null (i.g., following a $\operatorname{Uniform}(0, 1)$ distribution). The good thing is that only caluclating `fix.pv` makes the DE test very fast.
 
+
 ```{r fit-fixpv, warning=FALSE}
-res_fix <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+system.time(res_fix <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = NULL, # Set as NULL to only get fix.pv
                                      mat = LPS_sce,
-                                     model = "nb")
+                                     model = "nb"))
+```
 
+```{r res-DEfix}
 print(res_fix)
 ```
 
@@ -166,14 +165,15 @@ PseudotimeDE::plotCurve(gene.vec = res$gene,
                                         model.fit = res$gam.fit)
 ```
 
-The "dropout" problem (extra zeros) can be captured by using Zero-Inflated Negative-Binomial model (ZINB). In general, we believe `model = 'nb'` should be used in most cases since using ZINB may cause lower power (see this paper [Naught all zeros in sequence count data are the same](https://www.sciencedirect.com/science/article/pii/S2001037020303986?via%3Dihub)). However, if needed, users may choose the auto decision (`model = 'auto'`) or force to use ZINB (`model = 'zinb'`).
+The "dropout" problem (extra zeros) can be captured by using Zero-Inflated Negative-Binomial model (ZINB). In general, we believe `model = 'nb'` should be used in most cases since using ZINB may cause lower power (see this paper [Naught all zeros in sequence count data are the same](https://www.sciencedirect.com/science/article/pii/S2001037020303986?via%3Dihub)). Another disadvantage is that ZINB is more time-consuming than NB. However, if needed, users may choose the auto decision (`model = 'auto'`) or force to use ZINB (`model = 'zinb'`).
+
 
 ```{r fit-zinb, warning=FALSE}
-res_zinb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+system.time(res_zinb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
-                                     sub.tbl = LPS_sub_tbl[1:50],
+                                     sub.tbl = LPS_sub_tbl[1:100],
                                      mat = LPS_sce,
-                                     model = "zinb")
+                                     model = "zinb"))
 
 print(res_zinb)
 ```
@@ -186,24 +186,26 @@ PseudotimeDE::plotCurve(gene.vec = res_zinb$gene,
                                         model.fit = res_zinb$gam.fit)
 ```
 
-We also added Gaussian option into PseudotimeDE
+We also added Gaussian (Normal) distribution as an distribution option into PseudotimeDE. If your input is log-transformed counts (so they are close to Gaussian), you can set `model = 'gaussian'`. Gaussian is usually faster than NB.
 
 ```{r fit-gaussian, warning=FALSE}
 # first generate the logcount and added it to LPS_sce
 the_counts <- counts(LPS_sce) 
 logcounts(LPS_sce) <- log1p(the_counts)
-res_gaussian <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+system.time(res_gaussian <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
-                                     sub.tbl = LPS_sub_tbl[1:50],
+                                     sub.tbl = LPS_sub_tbl[1:100],
                                      mat = LPS_sce,
-                                     model = "gaussian", assay.use = "logcounts")
+                                     model = "gaussian", 
+                                     assay.use = "logcounts"))
+```
 
+```{r res-DEgaussian}
 print(res_gaussian)
 ```
 
-We can check the fitted curve by `gaussian`
-
-```{r visual-gaussiangam}
+We can check the fitted curve by `gaussian`.
+```{r visual-ggam}
 PseudotimeDE::plotCurve(gene.vec = res_gaussian$gene,
                                         ori.tbl = LPS_ori_tbl,
                                         mat = LPS_sce,
