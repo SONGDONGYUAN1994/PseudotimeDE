@@ -68,24 +68,30 @@ head(LPS_ori_tbl)
 
 The key step of *PseudotimeDE* is to use **subsampling** to get the uncertainty of inferred pseudotime. The default is using 80% cells. To save time, here we only generate 2 subsamples. The defulat is using 1000 subsamples, although 100 subsamples show similar performance in our empirical study. Of course, more subsamples will lead to more accurate results.
 
-```{r getsub}
+```{r getsub, warning=FALSE}
 set.seed(123)
 ## Set the cores for parallelization. Note that mclapply doesnot work on Windows.
 options(mc.cores = 2)
-
-## Number of subsmaples
-n = 2
-
-## Ganerate random subsamples
-LPS_index <- mclapply(seq_len(n), function(x) {
+BPPARAM <- BiocParallel::bpparam()
+BPPARAM$workers <- 2
+LPS_index <- BiocParallel::bplapply(seq_len(2) , function(x, LPS_sce) {
+  suppressPackageStartupMessages(library(SingleCellExperiment))
   sample(x = c(1:dim(LPS_sce)[2]), size = 0.8*dim(LPS_sce)[2], replace = FALSE)
-})
+}, LPS_sce = LPS_sce, BPPARAM = BPPARAM)
+
+
+
 ```
 
 Users should use the exact same procedure as they used in pseudotime inference on the original dataset. 
 
-```{r fit-slingshotsub}
-LPS_sub_tbl <- mclapply(LPS_index, function(x, sce) {
+```{r fit-slingshotsub, warning=FALSE}
+LPS_sub_tbl <- BiocParallel::bplapply(LPS_index, function(x, sce, LPS_ori_tbl) {
+  suppressPackageStartupMessages(library(SingleCellExperiment))
+  suppressPackageStartupMessages(library(slingshot))
+  suppressPackageStartupMessages(library(tibble))
+  suppressPackageStartupMessages(library(scales))
+  suppressPackageStartupMessages(library(dplyr))
   sce <- sce[, x]
   rd <- irlba::prcomp_irlba(t(logcounts(sce)), scale. = FALSE)$x[, 1:2]
   reducedDims(sce) <- SimpleList(PCA = rd)
@@ -100,7 +106,8 @@ LPS_sub_tbl <- mclapply(LPS_index, function(x, sce) {
     tbl <- dplyr::mutate(tbl, pseudotime = 1-pseudotime)
   }
   tbl
-}, sce = LPS_sce)
+}, sce = LPS_sce, LPS_ori_tbl = LPS_ori_tbl ,BPPARAM = BPPARAM)
+
 ```
 
 We load the example `LPS_ori_tbl` and `LPS_sub_tbl` for the next DE test. The `LPS_sub_tbl` contains the 1000 subsample-pseudotimes.
@@ -118,7 +125,7 @@ PseudotimeDE::plotUncertainty(LPS_ori_tbl, LPS_sub_tbl)
 
 To save time, we only run the DE test on two example genes (*CCL5*, *CXCL10*) and 100 subsamples. Note that the DE test can be time-consuming since it is a permutation test; we strongly encourage users to allocate at least 10 cores. We specify the distribution as Negative Binomial (`nb`) here.
 
-```{r fit-DE}
+```{r fit-DE, warning=FALSE}
 system.time(res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = LPS_sub_tbl[1:100], ## To save time, use 100 subsamples
@@ -136,7 +143,8 @@ print(res)
 
 Although we do not encourage this, users may choose completely ignore the uncertainty of inferred pseudotime, and use the $p$-values based on an asymptotic distribution (`fix.pv`). Note that `fix.pv` usually do not behaive correctly under the null (i.g., following a $\operatorname{Uniform}(0, 1)$ distribution). The good thing is that only caluclating `fix.pv` makes the DE test very fast.
 
-```{r fit-fixpv}
+
+```{r fit-fixpv, warning=FALSE}
 system.time(res_fix <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = NULL, # Set as NULL to only get fix.pv
@@ -159,7 +167,8 @@ PseudotimeDE::plotCurve(gene.vec = res$gene,
 
 The "dropout" problem (extra zeros) can be captured by using Zero-Inflated Negative-Binomial model (ZINB). In general, we believe `model = 'nb'` should be used in most cases since using ZINB may cause lower power (see this paper [Naught all zeros in sequence count data are the same](https://www.sciencedirect.com/science/article/pii/S2001037020303986?via%3Dihub)). Another disadvantage is that ZINB is more time-consuming than NB. However, if needed, users may choose the auto decision (`model = 'auto'`) or force to use ZINB (`model = 'zinb'`).
 
-```{r fit-zinb}
+
+```{r fit-zinb, warning=FALSE}
 system.time(res_zinb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = LPS_sub_tbl[1:100],
@@ -179,7 +188,10 @@ PseudotimeDE::plotCurve(gene.vec = res_zinb$gene,
 
 We also added Gaussian (Normal) distribution as an distribution option into PseudotimeDE. If your input is log-transformed counts (so they are close to Gaussian), you can set `model = 'gaussian'`. Gaussian is usually faster than NB.
 
-```{r fit-gaussian}
+```{r fit-gaussian, warning=FALSE}
+# first generate the logcount and added it to LPS_sce
+the_counts <- counts(LPS_sce) 
+logcounts(LPS_sce) <- log1p(the_counts)
 system.time(res_gaussian <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = LPS_sub_tbl[1:100],

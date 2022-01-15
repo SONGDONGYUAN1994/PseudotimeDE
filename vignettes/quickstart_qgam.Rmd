@@ -1,0 +1,98 @@
+---
+title: "quickstart_qgam.Rmd"
+author:
+  name: Tianyang Liu
+  affiliation: Master of Applied Statistics, University of California, Los Angeles
+  email: elijah1998@ucla.edu
+output:
+   BiocStyle::html_document:
+    highlight: pygments
+    toc: true
+    fig_width: 6
+    fig_height: 3
+vignette: >
+  %\VignetteIndexEntry{quickstart_qgam}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+# Introduction
+Beside generalized additive model, we also added quantile non-parametric additive models(QGAM) technique which has been introduced in Fast calibrated additive quantile regression to PseudotimeDE. 
+QGAM is different from 'quantreg'. The smoothing parameters of QGAM are estimated automatically by marginal loss minimization, while the regression coefficients are estimated using either PIRLS or Newton algorithm. And the learning rate of QGAM is determined so that the Bayesian credible intervals of the estimated effects have approximately the correct coverage.
+
+This section aims to demonstrate the functionality of PseudotimeDE when parameter "model" = qgam.  
+```{r}
+suppressPackageStartupMessages(library(PseudotimeDE))
+suppressPackageStartupMessages(library(SingleCellExperiment))
+```
+
+
+We will start with the example LSP dataset in PseudotimeDE directly. If you are interested in the generating process of 'LPS_ori_tbl', please refer to the quickstart.Rmd file.
+
+# LPS dataset
+```{r load-lpssce, load-lpsoritbl, load-lpssubtbl}
+data(LPS_sce, package = "PseudotimeDE")
+data(LPS_ori_tbl, package = "PseudotimeDE")
+```
+
+Just like what we have done in the quickstart.Rmd, we only run the DE test genes (*CCL5*, *CXCL10*)
+
+```{r}
+# first generate the logcount and added it to LPS_sce
+the_counts <- counts(LPS_sce) 
+logcounts(LPS_sce) <- log1p(the_counts)
+```
+
+# QGAM examples
+In QGAM, we don't have any subsampling process. And users are free to tune the quantile of interest for qgam() by "quant" parameter in PseudotimeDE. The default value of "quant" is 0.5. Here we provide three examples with 0.9, 0.5, 0.1 quantile of interest.
+```{r fit-qgam with quantile 0.9, message=FALSE, warning=FALSE}
+res_qgam_90 <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+                                     ori.tbl = LPS_ori_tbl,
+                                     sub.tbl = NULL, 
+                                     mat = LPS_sce,
+                                     model = "qgam", assay.use = "logcounts", quant = 0.9)
+
+print(res_qgam_90)
+```
+
+```{r visual-qgam quantile 0.9}
+PseudotimeDE::plotCurve(gene.vec = res_qgam_90$gene,
+                                        ori.tbl = LPS_ori_tbl,
+                                        mat = LPS_sce,
+                                        model.fit = res_qgam_90$gam.fit, assay.use = "logcounts")
+```
+
+
+```{r fit-qgam with quantile 0.5, message=FALSE, warning=FALSE}
+res_qgam_50 <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+                                     ori.tbl = LPS_ori_tbl,
+                                     sub.tbl = NULL, 
+                                     mat = LPS_sce,
+                                     model = "qgam", assay.use = "logcounts", quant = 0.5)
+
+print(res_qgam_50)
+```
+
+```{r visual-qgam quantile 0.5}
+PseudotimeDE::plotCurve(gene.vec = res_qgam_50$gene,
+                                        ori.tbl = LPS_ori_tbl,
+                                        mat = LPS_sce,
+                                        model.fit = res_qgam_50$gam.fit, assay.use = "logcounts")
+```
+
+```{r fit-qgam with quantile 0.1, message=FALSE, warning=FALSE}
+res_qgam_10 <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+                                     ori.tbl = LPS_ori_tbl,
+                                     sub.tbl = NULL, 
+                                     mat = LPS_sce,
+                                     model = "qgam", assay.use = "logcounts", quant = 0.1)
+
+print(res_qgam_10)
+```
+
+```{r visual-qgam quantile 0.1}
+PseudotimeDE::plotCurve(gene.vec = res_qgam_10$gene,
+                                        ori.tbl = LPS_ori_tbl,
+                                        mat = LPS_sce,
+                                        model.fit = res_qgam_10$gam.fit, assay.use = "logcounts")
+```

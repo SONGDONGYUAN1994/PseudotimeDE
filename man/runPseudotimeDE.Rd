@@ -16,6 +16,7 @@ runPseudotimeDE(
   fix.weight = TRUE,
   aicdiff = 10,
   seed = 123,
+  quant = 0.5,
   mc.cores = 2,
   mc.preschedule = TRUE,
   SIMPLIFY = TRUE
@@ -47,6 +48,8 @@ Its row names should be genes and col names should be cells.}
 \item{aicdiff}{A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.}
 
 \item{seed}{A numeric variable of the random seed. It mainly affects the fitting of null distribution.}
+
+\item{quant}{The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.}
 
 \item{mc.cores}{Number of cores for computing.}
 
