@@ -39,6 +39,7 @@ Quick start
 -----------
 
 For usage, please check the [vignettes](https://htmlpreview.github.io/?https://rpubs.com/dongyuansong/842884).
+A separate [vignettes(QGAM)](http://rpubs.com/tianyang1998/855799) is created for PseudoimeDE when its model parameter is set as 'qgam'. 
 If you meet problems, please contact <dongyuansong@ucla.edu>. 
 
 Clarification
