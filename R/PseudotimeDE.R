@@ -18,6 +18,7 @@
 #' @param aicdiff A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.
 #' @param seed A numeric variable of the random seed. It mainly affects the parametricfitting of null distribution.
 #' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.
+#' @param usebam A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).
 #'
 #' @return A list with the components:
 #' \describe{
@@ -59,7 +60,9 @@ pseudotimeDE <- function(gene,
                          knots = c(0:5/5),
                          fix.weight = TRUE,
                          aicdiff = 10,
-                         seed = 123, quant = 0.5) {
+                         seed = 123,
+                         quant = 0.5,
+                         usebam = FALSE) {
 
   ## Set seed
   set.seed(seed)
@@ -70,6 +73,17 @@ pseudotimeDE <- function(gene,
   ## Avoid R checking warning
   splits <- time.res <- NULL
 
+  # mgcv::gam <<- function(...) {
+  #   if(usebam){
+  #     mgcv::bam(..., discrete = TRUE)
+  #   }else{
+  #     mgcv::gam(...)
+  #   }
+  # }
+
+
+
+  ## Construct formula
   fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
   num_cell <- length(ori.tbl$cell)
@@ -108,7 +122,7 @@ pseudotimeDE <- function(gene,
 
 
   if(model == "gaussian"){
-      fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots)
+      fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
       aic.gaussian <- AIC(fit.gaussian)
   }
   else if(model == "qgam"){
@@ -116,21 +130,17 @@ pseudotimeDE <- function(gene,
     aic.qgam <- AIC(fit.qgam)
   }
   else{
-    fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots)
-    fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k)
-    aic.zinb <- fit.zinb$aic
-    aic.nb <- AIC(fit.nb)
-    fit.zinb <- fit.zinb$fit.mu
+    NULL
   }
 
   ## zinb model only uses the mu part.
 
 
   if(model == "nb") {
-    fit <- fit.nb
+    fit <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
     zinf <- FALSE
     distri <- "nb"
-    aic <- aic.nb
+    aic <- AIC(fit)
   }
   else if(model == "gaussian"){
     fit <- fit.gaussian
@@ -139,12 +149,22 @@ pseudotimeDE <- function(gene,
     aic <- aic.gaussian
   }
   else if (model == "zinb"){
-    fit <- fit.zinb
+    fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k, usebam = usebam)
+    aic.zinb <- fit.zinb$aic
+    fit.zinb <- fit.zinb$fit.mu
     zinf <- TRUE
     distri <- "zinb"
+    fit <- fit.zinb
     aic <- aic.zinb
   }
   else if (model == "auto") {
+    fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
+    aic.nb <- AIC(fit.nb)
+
+    fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k, usebam = usebam)
+    aic.zinb <- fit.zinb$aic
+    fit.zinb <- fit.zinb$fit.mu
+
     if(aic.nb - aic.zinb > aicdiff) {
       fit <- fit.zinb
       zinf <- TRUE
@@ -234,7 +254,7 @@ pseudotimeDE <- function(gene,
     dplyr::mutate(splits = purrr::map(time.res, function(x){
       x <- cbind(expv = count.v[x$cell], pseudotime = base::sample(x$pseudotime), cellWeights = cell_weights[x$cell]) %>% as.data.frame(); x
     })) %>%
-    dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, distribution = distri, use_weights = fix.weight, k = k, knots = knots),
+    dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, distribution = distri, use_weights = fix.weight, k = k, knots = knots, usebam = usebam),
                   stat = sapply(model, function(fit) {
                     if(is.logical(fit)) {Tr <- NA}
                     else {
@@ -289,7 +309,7 @@ fit_qgam <- function(dat, quant, k) {
 
 ## set distribution method
 # zinf
-fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k) {
+fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k, usebam) {
   if(use_weights) {cellWeights <- dat$cellWeights}
   else cellWeights <- rep(1, dim(dat)[1])
 
@@ -299,26 +319,46 @@ fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k) {
 
   fit.gam <- tryCatch(expr = {
     if(distribution == "nb") {
-      fit <- mgcv::gam(fit.formula, family = nb(link = "log"),
-                 data = dat,
-                 knots = list(pseudotime = knots), control = list(nthreads = nthreads))
-    }
+      if(usebam) {
+        fit <- mgcv::bam(fit.formula, family = nb(link = "log"),
+                         data = dat,
+                         knots = list(pseudotime = knots), control = list(nthreads = nthreads), discrete = TRUE)
+      } else {
+        fit <- mgcv::gam(fit.formula, family = nb(link = "log"),
+                         data = dat,
+                         knots = list(pseudotime = knots), control = list(nthreads = nthreads))
+
+      }
+          }
     else if(distribution == "gaussian"){
-      fit <- mgcv::gam(fit.formula, family = stats::gaussian(link = "identity"),
+      if(usebam) {
+        fit <- mgcv::bam(fit.formula, family = stats::gaussian(link = "identity"),
                  data = dat,
-                 knots = list(pseudotime = knots), control = list(nthreads = nthreads))
+                 knots = list(pseudotime = knots), control = list(nthreads = nthreads), discrete = TRUE)
+
+      } else {
+        fit <- mgcv::gam(fit.formula, family = stats::gaussian(link = "identity"),
+                         data = dat,
+                         knots = list(pseudotime = knots), control = list(nthreads = nthreads))
+      }
     }
 
     else if(distribution == "zinb"){
       if(!use_weights) {
         fit <- zinbgam(fit.formula, ~ logmu,
-                       data = dat, knots = knots, k = k)
+                       data = dat, knots = knots, k = k, usebam = usebam)
         fit <- fit$fit.mu
       }
       else {
-        fit <- mgcv::gam(fit.formula, family = nb(link = "log"),
-                   data = dat,
-                   knots = list(pseudotime = knots), control = list(nthreads = nthreads), weights = cellWeights)
+        if(usebam) {
+          fit <- mgcv::bam(fit.formula, family = nb(link = "log"),
+                           data = dat,
+                           knots = list(pseudotime = knots), control = list(nthreads = nthreads), weights = cellWeights, discrete = TRUE)
+        } else {
+          fit <- mgcv::gam(fit.formula, family = nb(link = "log"),
+                           data = dat,
+                           knots = list(pseudotime = knots), control = list(nthreads = nthreads), weights = cellWeights)
+        }
       }
     }
     else{stop("Specified 'distribution=' parameter is invalid. Must be one of 'nb', 'zinb', 'gaussian'.")}
@@ -350,7 +390,8 @@ zinbgam <- function(mu.formula,
                     max.em=50,
                     tol=1.0e-4,
                     k,
-                    knots) {
+                    knots,
+                    usebam) {
   ## As matrix
   #data <- data.frame(data)
   ## Extract the response y
@@ -362,8 +403,15 @@ zinbgam <- function(mu.formula,
   pi.formula <- update(pi.formula, z ~ .)
 
   ## Get inital NB fit
-  fit.gam <- mgcv::gam(mu.formula,
-                 data = data, family = nb(link = "log"), knots = list(pseudotime = knots))
+  if(usebam) {
+    fit.gam <- mgcv::bam(formula = mu.formula,
+                         data = data, family = nb(link = "log"), knots = list(pseudotime = knots), discrete = TRUE)
+
+  } else {
+    fit.gam <- mgcv::gam(formula = mu.formula,
+                         data = data, family = nb(link = "log"), knots = list(pseudotime = knots))
+
+  }
   ## Set initial pi, mu
   if(is.null(mu)) mu <- fitted(fit.gam)
   if(is.null(pi)) pi <- mean(y>0)
@@ -378,8 +426,14 @@ zinbgam <- function(mu.formula,
     data$mu <- mu
     data$logmu <- log(mu)
     ## Update models for current iteration
-    fit.pi <- suppressWarnings(mgcv::gam(pi.formula,family=binomial(),data=data))
-    fit.mu <- suppressWarnings(mgcv::gam(mu.formula,weights=1-z,family=nb(link = log), data=data, knots = list(pseudotime = knots)))
+    if(usebam) {
+      fit.pi <- suppressWarnings(mgcv::bam(formula = pi.formula,family=binomial(),data=data))
+      fit.mu <- suppressWarnings(mgcv::bam(formula = mu.formula,weights=1-z,family=nb(link = log), data=data, knots = list(pseudotime = knots), discrete = TRUE))
+    } else {
+      fit.pi <- suppressWarnings(mgcv::gam(formula = pi.formula,family=binomial(),data=data))
+      fit.mu <- suppressWarnings(mgcv::gam(formula = mu.formula,weights=1-z,family=nb(link = log), data=data, knots = list(pseudotime = knots)))
+    }
+
     pi <- predict(fit.pi,type="response")
     mu <- predict(fit.mu,type="response")
     theta <- fit.mu$family$getTheta(TRUE)

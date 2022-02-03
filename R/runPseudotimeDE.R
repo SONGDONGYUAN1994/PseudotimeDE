@@ -20,22 +20,18 @@
 #' @param aicdiff A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.
 #' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
 #' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.
+#' @param usebam A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).
 #' @param mc.cores Number of cores for computing.
 #' @param mc.preschedule See \code{mclapply}. Default is TRUE.
 #' @param SIMPLIFY A logic variable whether to return a tibble (TRUE) or a list of lists (FALSE). Default is TRUE.
 #' @return A tibble of summary results of genes
-#' @importFrom BioParallel bpparam bplapply
+#' @importFrom BiocParallel bpparam bplapply
 #'
 #' @examples
 #' data("LPS_sce")
 #' data("LPS_ori_tbl")
 #' data("LPS_sub_tbl")
-#' res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
-#' ori.tbl = LPS_ori_tbl,
-#' sub.tbl = LPS_sub_tbl,
-#' mat = LPS_sce,
-#' model = "nb")
-#'
+#' res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"), ori.tbl = LPS_ori_tbl, sub.tbl = LPS_sub_tbl[1:10], mat = LPS_sce, model = "nb")
 #'
 #' @export runPseudotimeDE
 #' @author Dongyuan Song
@@ -52,6 +48,7 @@ runPseudotimeDE <- function(gene.vec,
                             aicdiff = 10,
                             seed = 123,
                             quant = 0.5,
+                            usebam = FALSE,
                             mc.cores = 2,
                             mc.preschedule = TRUE,
                             SIMPLIFY = TRUE) {
@@ -91,8 +88,8 @@ runPseudotimeDE <- function(gene.vec,
                             fix.weight = fix.weight,
                             aicdiff = aicdiff,
                             quant = quant,
-
-  BPPARAM = BPPARAM)
+                            usebam = usebam,
+                            BPPARAM = BPPARAM)
 
 
   if(SIMPLIFY) {

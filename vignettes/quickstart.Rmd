@@ -18,7 +18,7 @@ vignette: >
 ---
 
 ```{r echo=FALSE, include=FALSE}
-knitr::opts_chunk$set(tidy = FALSE, cache = TRUE, dev = "png",
+knitr::opts_chunk$set(tidy = FALSE, cache = FALSE, dev = "png",
                       message = FALSE, error = FALSE, warning = TRUE)
 ```
 
@@ -149,7 +149,8 @@ system.time(res_fix <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL1
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = NULL, # Set as NULL to only get fix.pv
                                      mat = LPS_sce,
-                                     model = "nb"))
+                                     model = "nb",
+                                     mc.cores = 2))
 ```
 
 ```{r res-DEfix}
@@ -173,7 +174,8 @@ system.time(res_zinb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL
                                      ori.tbl = LPS_ori_tbl,
                                      sub.tbl = LPS_sub_tbl[1:100],
                                      mat = LPS_sce,
-                                     model = "zinb"))
+                                     model = "zinb",
+                                     mc.cores = 2))
 
 print(res_zinb)
 ```
@@ -197,7 +199,8 @@ system.time(res_gaussian <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "
                                      sub.tbl = LPS_sub_tbl[1:100],
                                      mat = LPS_sce,
                                      model = "gaussian", 
-                                     assay.use = "logcounts"))
+                                     assay.use = "logcounts",
+                                     mc.cores = 2))
 ```
 
 ```{r res-DEgaussian}

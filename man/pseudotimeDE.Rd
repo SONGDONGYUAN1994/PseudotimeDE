@@ -16,7 +16,8 @@ pseudotimeDE(
   fix.weight = TRUE,
   aicdiff = 10,
   seed = 123,
-  quant = 0.5
+  quant = 0.5,
+  usebam = FALSE
 )
 }
 \arguments{
@@ -47,8 +48,9 @@ Its row names should be genes and col names should be cells.}
 \item{seed}{A numeric variable of the random seed. It mainly affects the parametricfitting of null distribution.}
 
 \item{quant}{The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.}
-}
 
+\item{usebam}{A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).}
+}
 \value{
 A list with the components:
 \describe{
