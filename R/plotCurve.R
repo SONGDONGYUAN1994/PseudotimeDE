@@ -67,7 +67,7 @@ plotCurve <- function(gene.vec,
 
 
   dat <- mapply(X = gene.vec, Y = model.fit, function(X, Y) {
-    count_mat %>% dplyr::filter(gene ==  X) %>% dplyr::mutate(fitted = predict(Y, type = "response"))
+    count_mat %>% dplyr::filter(gene ==  X) %>% dplyr::filter(!is.na(pseudotime)) %>% dplyr::mutate(fitted = predict(Y, type = "response"))
   }, SIMPLIFY = FALSE)
 
 
