@@ -18,6 +18,7 @@ runPseudotimeDE(
   seed = 123,
   quant = 0.5,
   usebam = FALSE,
+  seurat.assay = "RNA",
   mc.cores = 2,
   mc.preschedule = TRUE,
   SIMPLIFY = TRUE
@@ -54,6 +55,8 @@ Its row names should be genes and col names should be cells.}
 
 \item{usebam}{A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).}
 
+\item{seurat.assay}{The \code{assay} used in Seurat. Default is \code{'RNA'}.}
+
 \item{mc.cores}{Number of cores for computing.}
 
 \item{mc.preschedule}{See \code{mclapply}. Default is TRUE.}
@@ -71,9 +74,10 @@ A wrapper of \code{PseudotimeDE::pseudotimeDE}.
 data("LPS_sce")
 data("LPS_ori_tbl")
 data("LPS_sub_tbl")
-res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"), ori.tbl = LPS_ori_tbl, sub.tbl = LPS_sub_tbl[1:10], mat = LPS_sce, model = "nb")
+res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+ori.tbl = LPS_ori_tbl, sub.tbl = LPS_sub_tbl[1:10], mat = LPS_sce, model = "nb")
 
 }
 \author{
-Dongyuan Song
+Dongyuan Song, Shiyu Ma
 }

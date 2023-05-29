@@ -10,7 +10,6 @@
 #'
 #' @import ggplot2
 #' @importFrom magrittr %>%
-#' @importFrom stats na.omit
 #' @export plotUncertainty
 #' @author Dongyuan Song, Huy Nyugen
 
@@ -43,7 +42,7 @@ plotUncertainty <- function(ori.tbl,
 
   na_plotdata <- cbind(Descending_unlist_pseudotimes,multiple_cell_truetime)
 
-  plotdata <- na_plotdata %>% na.omit(pseudotimes)
+  plotdata <- na_plotdata %>% stats::na.omit(pseudotimes)
   plotdata$cell <- factor(plotdata$cell, levels = unique(plotdata$cell))
 
   p <- ggplot(plotdata, aes(pseudotimes, cell)) +
