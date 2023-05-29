@@ -17,7 +17,8 @@ pseudotimeDE(
   aicdiff = 10,
   seed = 123,
   quant = 0.5,
-  usebam = FALSE
+  usebam = FALSE,
+  seurat.assay = "RNA"
 )
 }
 \arguments{
@@ -50,6 +51,8 @@ Its row names should be genes and col names should be cells.}
 \item{quant}{The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.}
 
 \item{usebam}{A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).}
+
+\item{seurat.assay}{The \code{assay} used in Seurat. Default is \code{'RNA'}.}
 }
 \value{
 A list with the components:
@@ -71,5 +74,5 @@ A list with the components:
 Test if one gene is differentially expressed along pseudotime.
 }
 \author{
-Dongyuan Song
+Dongyuan Song, Shiyu Ma
 }

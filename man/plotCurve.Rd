@@ -11,7 +11,8 @@ plotCurve(
   assay.use = "counts",
   model.fit,
   alpha = 0.2,
-  ncol = 2
+  ncol = 2,
+  seurat.assay = "RNA"
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ Its row names should be genes and col names should be cells.}
 \item{alpha}{A numeric value of the opacity of points. Default is 0.2.}
 
 \item{ncol}{A integer of facet column number. Default is 2.}
+
+\item{seurat.assay}{The \code{assay} used in Seurat. Default is \code{'RNA'}.}
 }
 \value{
 A ggplot object
@@ -40,5 +43,5 @@ A ggplot object
 Plot the fitted curve (gene trajectory) by a given gam model.
 }
 \author{
-Dongyuan Song
+Dongyuan Song, Shiyu Ma
 }

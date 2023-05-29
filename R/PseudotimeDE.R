@@ -19,6 +19,7 @@
 #' @param seed A numeric variable of the random seed. It mainly affects the parametricfitting of null distribution.
 #' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.
 #' @param usebam A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).
+#' @param seurat.assay The \code{assay} used in Seurat. Default is \code{'RNA'}.
 #'
 #' @return A list with the components:
 #' \describe{
@@ -36,18 +37,11 @@
 #' }
 #'
 #' @importFrom magrittr %>%
-#' @importFrom SummarizedExperiment assays colData
-#' @importFrom methods is
-#' @importFrom stats AIC binomial dgamma dnbinom fitted logLik model.frame model.matrix model.response pchisq pf pgamma predict qchisq quantile rbinom rgamma rmultinom update
-#' @importFrom tibble as_tibble
-#' @importFrom mgcv gam nb
-#' @importFrom fitdistrplus fitdist
-#' @importFrom mixtools gammamixEM
-#' @importFrom qgam qgam
+#' @importFrom stats fitted
 #'
 #' @export pseudotimeDE
 #'
-#' @author Dongyuan Song
+#' @author Dongyuan Song, Shiyu Ma
 
 
 pseudotimeDE <- function(gene,
@@ -62,7 +56,8 @@ pseudotimeDE <- function(gene,
                          aicdiff = 10,
                          seed = 123,
                          quant = 0.5,
-                         usebam = FALSE) {
+                         usebam = FALSE,
+                         seurat.assay = 'RNA') {
 
   ## Set seed
   set.seed(seed)
@@ -98,8 +93,13 @@ pseudotimeDE <- function(gene,
     expv <- SummarizedExperiment::assay(mat, assay.use)[gene, ori.tbl$cell]
     count.v <- expv
   }
-  else if(class(mat)[1] == "SeuratObject") {
-    expv <- Seurat::GetAssayData(object = mat, slot = assay.use)[gene, ori.tbl$cell]
+  else if(class(mat)[1] == "Seurat") {
+    if(assay.use == 'logcounts'){
+      assay_alter <- 'data'
+    }else{
+      assay_alter <- assay.use
+    }
+    expv <- Seurat::GetAssayData(object = mat, slot = assay_alter, assay = seurat.assay)[gene, ori.tbl$cell]
     count.v <- expv
   }
   else {
@@ -107,27 +107,27 @@ pseudotimeDE <- function(gene,
     count.v <- expv
   }
 
-  dat <- cbind(pseudotime, expv) %>% as_tibble()
+  dat <- cbind(pseudotime, expv) %>% tibble::as_tibble()
 
   if(assay.use == "logcounts"){
-    expv.quantile <- quantile(count.v)
+    expv.quantile <- stats::quantile(count.v)
     expv.mean <- mean(count.v)
     expv.zero <- sum(count.v == 0)/length(count.v)
   }
   else{
-    expv.quantile <- quantile(log(count.v + 1))
+    expv.quantile <- stats::quantile(log(count.v + 1))
     expv.mean <- mean(log(count.v + 1))
     expv.zero <- sum(count.v == 0)/length(count.v)
   }
 
 
   if(model == "gaussian"){
-      fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
-      aic.gaussian <- AIC(fit.gaussian)
+    fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
+    aic.gaussian <- stats::AIC(fit.gaussian)
   }
   else if(model == "qgam"){
     fit.qgam <- fit_qgam(dat, k = k, quant = quant)
-    aic.qgam <- AIC(fit.qgam)
+    aic.qgam <- stats::AIC(fit.qgam)
   }
   else{
     NULL
@@ -140,7 +140,7 @@ pseudotimeDE <- function(gene,
     fit <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
     zinf <- FALSE
     distri <- "nb"
-    aic <- AIC(fit)
+    aic <- stats::AIC(fit)
   }
   else if(model == "gaussian"){
     fit <- fit.gaussian
@@ -159,7 +159,7 @@ pseudotimeDE <- function(gene,
   }
   else if (model == "auto") {
     fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
-    aic.nb <- AIC(fit.nb)
+    aic.nb <- stats::AIC(fit.nb)
 
     fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k, usebam = usebam)
     aic.zinb <- fit.zinb$aic
@@ -196,7 +196,7 @@ pseudotimeDE <- function(gene,
   p <- fit$coefficients
   V <- fit$Vp
   rank <- sum(fit$edf1) - 1
-  Xp <- model.matrix(fit)
+  Xp <- stats::model.matrix(fit)
 
   Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
   Tr <- Tr$stat
@@ -225,8 +225,13 @@ pseudotimeDE <- function(gene,
     expv <- SummarizedExperiment::assay(mat, assay.use)[gene, ]
     count.v <- expv
   }
-  else if(class(mat)[1] == "SeuratObject") {
-    expv <- Seurat::GetAssayData(object = mat, slot = assay.use)[gene, ]
+  else if(class(mat)[1] == "Seurat") {
+    if(assay.use == 'logcounts'){
+      assay_alter <- 'data'
+    }else{
+      assay_alter <- assay.use
+    }
+    expv <- Seurat::GetAssayData(object = mat, slot = assay_alter, assay = seurat.assay)[gene, ]
     count.v <- expv
   }
   else {
@@ -244,7 +249,7 @@ pseudotimeDE <- function(gene,
   }
   else {
     ## All weights are 1
-    cell_weights <- rep(1, num_total_cell)
+    cell_weights <- base::rep(1, dim(mat)[2]) #num_total_cell
     names(cell_weights) <- colnames(mat)}
 
   ## Start permutation
@@ -263,7 +268,7 @@ pseudotimeDE <- function(gene,
                       p <- fit$coefficients
                       V <- fit$Vp
                       rank <- sum(fit$edf1) - 1
-                      Xp <- model.matrix(fit)
+                      Xp <- stats::model.matrix(fit)
 
                       Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
                       Tr <- as.numeric(Tr$stat)}
@@ -320,21 +325,21 @@ fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k, useb
   fit.gam <- tryCatch(expr = {
     if(distribution == "nb") {
       if(usebam) {
-        fit <- mgcv::bam(fit.formula, family = nb(link = "log"),
+        fit <- mgcv::bam(fit.formula, family = mgcv::nb(link = "log"),
                          data = dat,
                          knots = list(pseudotime = knots), control = list(nthreads = nthreads), discrete = TRUE)
       } else {
-        fit <- mgcv::gam(fit.formula, family = nb(link = "log"),
+        fit <- mgcv::gam(fit.formula, family = mgcv::nb(link = "log"),
                          data = dat,
                          knots = list(pseudotime = knots), control = list(nthreads = nthreads))
 
       }
-          }
+    }
     else if(distribution == "gaussian"){
       if(usebam) {
         fit <- mgcv::bam(fit.formula, family = stats::gaussian(link = "identity"),
-                 data = dat,
-                 knots = list(pseudotime = knots), control = list(nthreads = nthreads), discrete = TRUE)
+                         data = dat,
+                         knots = list(pseudotime = knots), control = list(nthreads = nthreads), discrete = TRUE)
 
       } else {
         fit <- mgcv::gam(fit.formula, family = stats::gaussian(link = "identity"),
@@ -351,11 +356,11 @@ fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k, useb
       }
       else {
         if(usebam) {
-          fit <- mgcv::bam(fit.formula, family = nb(link = "log"),
+          fit <- mgcv::bam(fit.formula, family = mgcv::nb(link = "log"),
                            data = dat,
                            knots = list(pseudotime = knots), control = list(nthreads = nthreads), weights = cellWeights, discrete = TRUE)
         } else {
-          fit <- mgcv::gam(fit.formula, family = nb(link = "log"),
+          fit <- mgcv::gam(fit.formula, family = mgcv::nb(link = "log"),
                            data = dat,
                            knots = list(pseudotime = knots), control = list(nthreads = nthreads), weights = cellWeights)
         }
@@ -374,7 +379,7 @@ fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k, useb
 ## Zero Inflated NB GAM. Refer to https://github.com/AustralianAntarcticDataCentre/zigam.
 ## Log ZINB density
 dzinb.log <- function(x,mu,pi,shape) {
-  logp <- log(1 - pi)+dnbinom(x,size=shape,mu=mu,log=T)
+  logp <- log(1 - pi)+stats::dnbinom(x,size=shape,mu=mu,log=T)
   logp[x==0] <- log(exp(logp[x==0])+(pi[x==0]))
   logp
 }
@@ -395,47 +400,47 @@ zinbgam <- function(mu.formula,
   ## As matrix
   #data <- data.frame(data)
   ## Extract the response y
-  mf <- model.frame(update(mu.formula,.~1),data=data)
-  y <- model.response(mf)
+  mf <- stats::model.frame(stats::update(mu.formula,.~1),data=data)
+  y <- stats::model.response(mf)
   N <- length(y)
 
   ## Response for pi component is the weights
-  pi.formula <- update(pi.formula, z ~ .)
+  pi.formula <- stats::update(pi.formula, z ~ .)
 
   ## Get inital NB fit
   if(usebam) {
     fit.gam <- mgcv::bam(formula = mu.formula,
-                         data = data, family = nb(link = "log"), knots = list(pseudotime = knots), discrete = TRUE)
+                         data = data, family = mgcv::nb(link = "log"), knots = list(pseudotime = knots), discrete = TRUE)
 
   } else {
     fit.gam <- mgcv::gam(formula = mu.formula,
-                         data = data, family = nb(link = "log"), knots = list(pseudotime = knots))
+                         data = data, family = mgcv::nb(link = "log"), knots = list(pseudotime = knots))
 
   }
   ## Set initial pi, mu
-  if(is.null(mu)) mu <- fitted(fit.gam)
+  if(is.null(mu)) mu <- stats::fitted(fit.gam)
   if(is.null(pi)) pi <- mean(y>0)
 
   logL <- double(max.em)
   theta <- fit.gam$family$getTheta(TRUE)
   for(k in 1:max.em) {
     ## Evaluate weights for current iteration
-    z <- ifelse(y==0,pi/(pi+ (1-pi)*dnbinom(0,size=theta,mu=mu)),0)
+    z <- ifelse(y==0,pi/(pi+ (1-pi)*stats::dnbinom(0,size=theta,mu=mu)),0)
     ## Update the data (with mu and z)
     data$z <- z
     data$mu <- mu
     data$logmu <- log(mu)
     ## Update models for current iteration
     if(usebam) {
-      fit.pi <- suppressWarnings(mgcv::bam(formula = pi.formula,family=binomial(),data=data))
-      fit.mu <- suppressWarnings(mgcv::bam(formula = mu.formula,weights=1-z,family=nb(link = log), data=data, knots = list(pseudotime = knots), discrete = TRUE))
+      fit.pi <- suppressWarnings(mgcv::bam(formula = pi.formula,family=stats::binomial(),data=data))
+      fit.mu <- suppressWarnings(mgcv::bam(formula = mu.formula,weights=1-z,family=mgcv::nb(link = log), data=data, knots = list(pseudotime = knots), discrete = TRUE))
     } else {
-      fit.pi <- suppressWarnings(mgcv::gam(formula = pi.formula,family=binomial(),data=data))
-      fit.mu <- suppressWarnings(mgcv::gam(formula = mu.formula,weights=1-z,family=nb(link = log), data=data, knots = list(pseudotime = knots)))
+      fit.pi <- suppressWarnings(mgcv::gam(formula = pi.formula,family=stats::binomial(),data=data))
+      fit.mu <- suppressWarnings(mgcv::gam(formula = mu.formula,weights=1-z,family=mgcv::nb(link = log), data=data, knots = list(pseudotime = knots)))
     }
 
-    pi <- predict(fit.pi,type="response")
-    mu <- predict(fit.mu,type="response")
+    pi <- stats::predict(fit.pi,type="response")
+    mu <- stats::predict(fit.mu,type="response")
     theta <- fit.mu$family$getTheta(TRUE)
     ## Evaluate likelihood
     logL[k] <- sum(dzinb.log(y,mu,pi,theta))
@@ -448,7 +453,7 @@ zinbgam <- function(mu.formula,
   }
 
   ## Calculate degrees of freedom and aic
-  df <- attr(logLik(fit.pi),"df")+attr(logLik(fit.mu),"df")
+  df <- attr(stats::logLik(fit.pi),"df")+attr(stats::logLik(fit.mu),"df")
   aic <- 2*(df-logL[length(logL)])
   ## Return results
   fit <- list(fit.mu=fit.mu,
@@ -554,8 +559,8 @@ testStat <- function(p,X,V,rank=NULL,type=0,res.df= -1) {
   ## upper tail. In lower tail, 2 moment approximation is better (Can check this
   ## by simply plotting the whole interesting range as a contour plot!)
   if (pval > .5) {
-    if (res.df <= 0) pval <- (pchisq(d,df=rank1,lower.tail=FALSE)+pchisq(d1,df=rank1,lower.tail=FALSE))/2 else
-      pval <- (pf(d/rank1,rank1,res.df,lower.tail=FALSE)+pf(d1/rank1,rank1,res.df,lower.tail=FALSE))/2
+    if (res.df <= 0) pval <- (stats::pchisq(d,df=rank1,lower.tail=FALSE)+stats::pchisq(d1,df=rank1,lower.tail=FALSE))/2 else
+      pval <- (stats::pf(d/rank1,rank1,res.df,lower.tail=FALSE)+stats::pf(d1/rank1,rank1,res.df,lower.tail=FALSE))/2
   }
   list(stat=d,pval=min(1,pval),rank=rank)
 
@@ -611,7 +616,7 @@ liu2 <- function(x, lambda, h = rep(1,length(lambda)),lower.tail=FALSE) {
   muX <- l+delta
   sigX <- sqrt(2)*a
 
-  return(pchisq(t*sigX+muX,df=l,ncp=delta,lower.tail=lower.tail))
+  return(stats::pchisq(t*sigX+muX,df=l,ncp=delta,lower.tail=lower.tail))
 
 }
 
@@ -621,7 +626,7 @@ simf <- function(x,a,df,nq=50) {
   ## used here. So, e.g.
   ## 1-pf(4/3,3,40);simf(4,rep(1,3),40);1-pchisq(4,3)
   p <- (1:nq-.5)/nq
-  q <- qchisq(p,df)
+  q <- stats::qchisq(p,df)
   x <- x*q/df
   pr <- sum(liu2(x,a)) ## Pearson/Liu approx to chi^2 mixture
   pr/nq
@@ -633,18 +638,18 @@ simf <- function(x,a,df,nq=50) {
 
 ### Mix gamma pdf
 dgammamix <- function(x, lambda, gamma.pars, k = dim(gamma.pars)[2]) {
-  if(k == 2) d <- lambda[1]*dgamma(x, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1]) + lambda[2]*dgamma(x, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2])
-  else  if(k == 3) d <- lambda[1]*dgamma(x, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1]) +
-      lambda[2]*dgamma(x, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2]) + lambda[3]*dgamma(x, shape = gamma.pars[1, 3], scale = gamma.pars[2, 3])
+  if(k == 2) d <- lambda[1]*stats::dgamma(x, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1]) + lambda[2]*stats::dgamma(x, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2])
+  else  if(k == 3) d <- lambda[1]*stats::dgamma(x, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1]) +
+      lambda[2]*stats::dgamma(x, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2]) + lambda[3]*stats::dgamma(x, shape = gamma.pars[1, 3], scale = gamma.pars[2, 3])
   else d <- NA
   d
 }
 
 ### Mix gamma cdf
 pgammamix <- function(x, lambda, gamma.pars, k = dim(gamma.pars)[2], lower.tail = FALSE) {
-  if(k == 2) p <- lambda[1]*pgamma(x, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1], lower.tail = lower.tail) + lambda[2]*pgamma(x, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2], lower.tail = lower.tail)
-  else if (k == 3) p <- lambda[1]*pgamma(x, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1], lower.tail = lower.tail) +
-      lambda[2]*pgamma(x, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2], lower.tail = lower.tail) + lambda[3]*pgamma(x, shape = gamma.pars[1, 3], scale = gamma.pars[2, 3], lower.tail = lower.tail)
+  if(k == 2) p <- lambda[1]*stats::pgamma(x, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1], lower.tail = lower.tail) + lambda[2]*stats::pgamma(x, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2], lower.tail = lower.tail)
+  else if (k == 3) p <- lambda[1]*stats::pgamma(x, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1], lower.tail = lower.tail) +
+      lambda[2]*stats::pgamma(x, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2], lower.tail = lower.tail) + lambda[3]*stats::pgamma(x, shape = gamma.pars[1, 3], scale = gamma.pars[2, 3], lower.tail = lower.tail)
   else p <- NA
   p
 }
@@ -652,14 +657,14 @@ pgammamix <- function(x, lambda, gamma.pars, k = dim(gamma.pars)[2], lower.tail 
 ### Mix gamma rv
 rgammamix <- function(n = 1, lambda, gamma.pars, k = dim(gamma.pars)[2]) {
   if(k == 2) {
-    z <- rbinom(n, size = 1, lambda[1])
-    r <- z*rgamma(n, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1]) + (1 - z)*rgamma(n, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2])
+    z <- stats::rbinom(n, size = 1, lambda[1])
+    r <- z*stats::rgamma(n, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1]) + (1 - z)*stats::rgamma(n, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2])
   }
   else if (k == 3) {
-    z <- rmultinom(n, size = 1, prob = c(lambda[1], lambda[2], lambda[3]))
-    y1 <- rgamma(n, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1])
-    y2 <- rgamma(n, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2])
-    y3 <- rgamma(n, shape = gamma.pars[1, 3], scale = gamma.pars[2, 3])
+    z <- stats::rmultinom(n, size = 1, prob = c(lambda[1], lambda[2], lambda[3]))
+    y1 <- stats::rgamma(n, shape = gamma.pars[1, 1], scale = gamma.pars[2, 1])
+    y2 <- stats::rgamma(n, shape = gamma.pars[1, 2], scale = gamma.pars[2, 2])
+    y3 <- stats::rgamma(n, shape = gamma.pars[1, 3], scale = gamma.pars[2, 3])
 
     y <- rbind(y1, y2, y3)
 
@@ -685,7 +690,7 @@ cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) 
   fit1 <- suppressWarnings(fitdistrplus::fitdist(x, "gamma"))
   test.res <- goftest::ad.test(x, null = "pgamma", shape = fit1$estimate[1], rate = fit1$estimate[2], estimated = TRUE)
 
-  p <- pgamma(y, shape = fit1$estimate[1], rate = fit1$estimate[2], lower.tail = FALSE)
+  p <- stats::pgamma(y, shape = fit1$estimate[1], rate = fit1$estimate[2], lower.tail = FALSE)
 
   ## gamma mix fit
   if(test.res$p.value < 1) {
@@ -694,14 +699,14 @@ cal_pvalue <- function(x, y, epsilon = 1e-4, p.thresh = 0.01, plot.fit = FALSE) 
     ## three random start
     for (i in 1:3) {
       set.seed(i)
-      fit.temp <- quiet(gammamixEM(x, maxit = 100, k = 2, epsilon = epsilon, maxrestarts = 20, lambda = c(i/10, 1-i/10)))
+      fit.temp <- quiet(mixtools::gammamixEM(x, maxit = 100, k = 2, epsilon = epsilon, maxrestarts = 20, lambda = c(i/10, 1-i/10)))
       if(fit2$loglik < fit.temp$loglik) fit2 <- fit.temp
     }
 
     test.res2 <- goftest::ad.test(x, null = pgammamix, lambda = fit2$lambda, gamma.pars = fit2$gamma.pars, lower.tail = TRUE, estimated = TRUE)
 
     ## LRT gamma vs gamma mix
-    LRT.p <- pchisq(2*(fit2$loglik - fit1$loglik), df = 3, lower.tail = FALSE)
+    LRT.p <- stats::pchisq(2*(fit2$loglik - fit1$loglik), df = 3, lower.tail = FALSE)
 
     if(LRT.p < p.thresh) {
       p <- pgammamix(y, lambda = fit2$lambda, gamma.pars = fit2$gamma.pars)

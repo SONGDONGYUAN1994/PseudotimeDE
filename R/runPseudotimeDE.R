@@ -21,20 +21,21 @@
 #' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
 #' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.
 #' @param usebam A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).
+#' @param seurat.assay The \code{assay} used in Seurat. Default is \code{'RNA'}.
 #' @param mc.cores Number of cores for computing.
 #' @param mc.preschedule See \code{mclapply}. Default is TRUE.
 #' @param SIMPLIFY A logic variable whether to return a tibble (TRUE) or a list of lists (FALSE). Default is TRUE.
 #' @return A tibble of summary results of genes
-#' @importFrom BiocParallel bpparam bplapply
 #'
 #' @examples
 #' data("LPS_sce")
 #' data("LPS_ori_tbl")
 #' data("LPS_sub_tbl")
-#' res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"), ori.tbl = LPS_ori_tbl, sub.tbl = LPS_sub_tbl[1:10], mat = LPS_sce, model = "nb")
+#' res <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10"),
+#' ori.tbl = LPS_ori_tbl, sub.tbl = LPS_sub_tbl[1:10], mat = LPS_sce, model = "nb")
 #'
 #' @export runPseudotimeDE
-#' @author Dongyuan Song
+#' @author Dongyuan Song, Shiyu Ma
 
 runPseudotimeDE <- function(gene.vec,
                             ori.tbl,
@@ -49,6 +50,7 @@ runPseudotimeDE <- function(gene.vec,
                             seed = 123,
                             quant = 0.5,
                             usebam = FALSE,
+                            seurat.assay = 'RNA',
                             mc.cores = 2,
                             mc.preschedule = TRUE,
                             SIMPLIFY = TRUE) {
@@ -60,36 +62,48 @@ runPseudotimeDE <- function(gene.vec,
   BPPARAM <- BiocParallel::bpparam()
   BPPARAM$workers <- mc.cores
 
-  res <- BiocParallel::bplapply(gene.vec, function(x, ...) {
+  #Check whether each df in sub.tbl is a subset of ori.tbl
+  if(!is.null(sub.tbl)){
+    is.subset_all<-c()
+    for(i in 1:length(sub.tbl)){
+      cell <- names(sub.tbl[[1]])[1]
+      is.subset_all[i]<-(length(ori.tbl[ori.tbl[[cell]] %in% sub.tbl[[i]][[cell]],cell][[1]]) == length(sub.tbl[[i]][[cell]]))
+    }
+    if(!all(is.subset_all)){
+      stop("Some cells in sub.tbl are not a subset of ori.tbl")
+    }
+  }
 
-    cur_res <- tryCatch(expr = PseudotimeDE::pseudotimeDE(gene = x, ...), error = function(e) {
-      return(list(fix.pv = NA,
-                  emp.pv = NA,
-                  para.pv = NA,
-                  ad.pv = NA,
-                  rank = NA,
-                  gam.fit = NA,
-                  zinf = NA,
-                  aic = NA,
-                  expv.quantile = NA,
-                  expv.mean = NA,
-                  expv.zero = NA
-      ))
-    })
+  res <- BiocParallel::bplapply(gene.vec, function(x, ...) {
+    cur_res <- tryCatch(expr = pseudotimeDE(gene = x,
+                                            ori.tbl = ori.tbl,
+                                            sub.tbl = sub.tbl,
+                                            mat = mat[x,],
+                                            model = model), #input only the target gene
+                        error = function(e) {
+                          list(fix.pv = NA,
+                               emp.pv = NA,
+                               para.pv = NA,
+                               ad.pv = NA,
+                               rank = NA,
+                               gam.fit = NA,
+                               zinf = NA,
+                               aic = NA,
+                               expv.quantile = NA,
+                               expv.mean = NA,
+                               expv.zero = NA)
+                        })
     cur_res
   },
-                            ori.tbl = ori.tbl,
-                            sub.tbl = sub.tbl,
-                            mat = mat,
-                            assay.use = assay.use,
-                            model = model,
-                            k = k,
-                            knots = knots,
-                            fix.weight = fix.weight,
-                            aicdiff = aicdiff,
-                            quant = quant,
-                            usebam = usebam,
-                            BPPARAM = BPPARAM)
+  assay.use = assay.use,
+  k = k,
+  knots = knots,
+  fix.weight = fix.weight,
+  aicdiff = aicdiff,
+  quant = quant,
+  usebam = usebam,
+  seurat.assay = seurat.assay,
+  BPPARAM = BPPARAM)
 
 
   if(SIMPLIFY) {
@@ -98,7 +112,7 @@ runPseudotimeDE <- function(gene.vec,
     rownames(res) <- gene.vec
     res <- tibble::as_tibble(res, rownames = "gene")
     res <- tidyr::unnest(res, cols = ! (gam.fit | expv.quantile))
-    }
+  }
 
   res
 }
