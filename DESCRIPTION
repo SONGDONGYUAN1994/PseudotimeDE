@@ -27,11 +27,6 @@ Imports:
     Seurat,
     BiocParallel,
     qgam
-License: MIT + file LICENSE
-Encoding: UTF-8
-LazyData: true
-LazyDataCompression:xz
-RoxygenNote: 7.2.3
 Suggests: 
     testthat,
     knitr,
@@ -39,7 +34,14 @@ Suggests:
     SingleCellExperiment,
     irlba,
     scales,
-    slingshot
+    slingshot,
+    BiocStyle,
+    sf
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+LazyDataCompression:xz
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
 URL: https://github.com/SONGDONGYUAN1994/PseudotimeDE
 BugReports: https://github.com/SONGDONGYUAN1994/PseudotimeDE/issues
