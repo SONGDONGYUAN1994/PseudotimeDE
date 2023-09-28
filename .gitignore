@@ -6,6 +6,7 @@
 .Rapp.history
 .Rproject
 .Rproj.user
+.Rbuildignore
 # Session Data files
 .RData
 

@@ -64,13 +64,10 @@ runPseudotimeDE <- function(gene.vec,
 
   #Check whether each df in sub.tbl is a subset of ori.tbl
   if(!is.null(sub.tbl)){
-    is.subset_all<-c()
-    for(i in 1:length(sub.tbl)){
-      cell <- names(sub.tbl[[1]])[1]
-      is.subset_all[i]<-(length(ori.tbl[ori.tbl[[cell]] %in% sub.tbl[[i]][[cell]],cell][[1]]) == length(sub.tbl[[i]][[cell]]))
-    }
+    is.subset_all <- sapply(sub.tbl, function(x) {
+      all(x$cell %in% ori.tbl$cell)})
     if(!all(is.subset_all)){
-      stop("Some cells in sub.tbl are not a subset of ori.tbl")
+      stop("Cells in ", paste0(which(!is.subset_all), " is not a subset of ori.tbl."))
     }
   }
 
