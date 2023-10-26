@@ -32,7 +32,7 @@ runPseudotimeDE(
 \item{sub.tbl}{A list of tibbles or dataframes where each is the fit of a subsample. Each element is the same format as ori.tbl.}
 
 \item{mat}{The input expression data. It can be:
-(1) A SingleCellExperment object which contain the expression data;
+(1) A SingleCellExperiment object which contain the expression data;
 (2) An matrix;
 (3) A Seurat object which contain the expression data.
 Its row names should be genes and col names should be cells.}
@@ -41,9 +41,9 @@ Its row names should be genes and col names should be cells.}
 
 \item{model}{A string of the model name. One of \code{nb}, \code{zinb}, \code{gaussian}, \code{auto} and \code{qgam}.}
 
-\item{k}{A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.}
+\item{k}{A integer of the basis dimension. Default is 6. The results are usually robust to different k; we recommend to use k from 5 to 10.}
 
-\item{knots}{A numeric vector of the location of knots.}
+\item{knots}{A numeric vector of the location of knots. Default is evenly distributed between 0 to 1. For instance, if your k = 6, and your range is [0, 10], then the position of knots should be \code{c(0:5)*(10-0)}.}
 
 \item{fix.weight}{A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.}
 
@@ -51,7 +51,7 @@ Its row names should be genes and col names should be cells.}
 
 \item{seed}{A numeric variable of the random seed. It mainly affects the fitting of null distribution.}
 
-\item{quant}{The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.}
+\item{quant}{The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5 (median).}
 
 \item{usebam}{A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).}
 

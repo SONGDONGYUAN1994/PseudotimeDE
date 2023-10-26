@@ -40,7 +40,7 @@ Its row names should be genes and col names should be cells.}
 
 \item{k}{A integer of the basis dimension. Default is 6. The reults are usually robust to different k; we recommend to use k from 5 to 10.}
 
-\item{knots}{A numeric vector of the location of knots. Default is evenly distributed between 0 to 1.}
+\item{knots}{A numeric vector of the location of knots. Default is evenly distributed between 0 to 1. For instance, if your k = 6, and your range is [0, 10], then the position of knots should be \code{c(0:5)*(10-0)}.}
 
 \item{fix.weight}{A logic variable indicating if the ZINB-GAM will use the zero weights from the original model. Used for saving time since ZINB-GAM is computationally intense.}
 
