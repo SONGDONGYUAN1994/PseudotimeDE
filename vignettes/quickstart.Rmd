@@ -70,7 +70,7 @@ The key step of *PseudotimeDE* is to use **subsampling** to get the uncertainty 
 
 ```{r getsub, warning=FALSE}
 set.seed(123)
-## Set the cores for parallelization. Note that mclapply doesnot work on Windows.
+## Set the cores for parallelization. Note that mclapply does not work on Windows.
 options(mc.cores = 2)
 BPPARAM <- BiocParallel::bpparam()
 BPPARAM$workers <- 2

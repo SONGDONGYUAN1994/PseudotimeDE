@@ -46,9 +46,9 @@ plotUncertainty <- function(ori.tbl,
   plotdata$cell <- factor(plotdata$cell, levels = unique(plotdata$cell))
 
   p <- ggplot(plotdata, aes(pseudotimes, cell)) +
-    stat_density(aes(fill = ..density..), geom = "raster", position = "identity") +
+    stat_density(aes(fill = after_stat(density)), geom = "raster", position = "identity") +
     scale_fill_gradient(low = "white", high = "black") +
-    labs(x="pseudotimes of subsamples", y = "Cells", fill = "Density") +
+    labs(x="Pseudotimes of subsamples", y = "Cells", fill = "Density") +
     theme_bw() +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"),
           axis.text.y=element_blank(),
