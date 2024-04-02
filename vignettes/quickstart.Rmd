@@ -141,7 +141,7 @@ print(res)
 
 `para.pv` is the most important output - the $p$-values of DE test. `rank` measures how wiggling the gene trajectory is. `gam.fit` is the fitted Generalized Additive Model (GAM).
 
-Although we do not encourage this, users may choose completely ignore the uncertainty of inferred pseudotime, and use the $p$-values based on an asymptotic distribution (`fix.pv`). Note that `fix.pv` usually do not behaive correctly under the null (i.g., following a $\operatorname{Uniform}(0, 1)$ distribution). The good thing is that only caluclating `fix.pv` makes the DE test very fast.
+Although we do not encourage this, users may choose completely ignore the uncertainty of inferred pseudotime, and use the $p$-values based on an asymptotic distribution (`fix.pv`). Note that `fix.pv` usually do not behave correctly under the null (i.g., following a $\operatorname{Uniform}(0, 1)$ distribution). The good thing is that only calculating `fix.pv` makes the DE test very fast.
 
 
 ```{r fit-fixpv, warning=FALSE}
@@ -214,7 +214,6 @@ PseudotimeDE::plotCurve(gene.vec = res_gaussian$gene,
                                         mat = LPS_sce,
                                         model.fit = res_gaussian$gam.fit, assay.use = "logcounts")
 ```
-
 
 # Session Info
 

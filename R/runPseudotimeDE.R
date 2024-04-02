@@ -77,6 +77,7 @@ runPseudotimeDE <- function(gene.vec,
                                             sub.tbl = sub.tbl,
                                             mat = mat[x,],
                                             model = model,
+                                            assay.use = assay.use,
                                             seurat.assay = seurat.assay), #input only the target gene
                         error = function(e) {
                           list(fix.pv = NA,
