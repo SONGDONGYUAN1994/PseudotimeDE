@@ -191,7 +191,7 @@ pseudotimeDE <- function(gene,
   edf1 <- sum(fit$edf1)
   s.pv <- summary(fit)$s.pv
 
-  ## Simon 2012 test statistic for sample. Copy from mgcv, but drop the subsampling part.
+  ## Simon 2012 test statistic for sample. Copied from mgcv, but drop the subsampling part.
   res.df <- -1
   p <- fit$coefficients
   V <- fit$Vp
@@ -287,6 +287,7 @@ pseudotimeDE <- function(gene,
               para.pv = smooth_pv$p,
               ad.pv = smooth_pv$ad.pv,
               rank = rank,
+              test.statistics = Tr,
               gam.fit = fit,
               zinf = zinf,
               aic = aic,
