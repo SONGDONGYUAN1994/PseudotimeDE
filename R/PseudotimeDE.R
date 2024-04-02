@@ -109,16 +109,16 @@ pseudotimeDE <- function(gene,
 
   dat <- cbind(pseudotime, expv) %>% tibble::as_tibble()
 
-  if(assay.use == "logcounts"){
+  #if(assay.use == "logcounts"){ ## We remove the special setting of counts since the assay name can be arbitrary from users
     expv.quantile <- stats::quantile(count.v)
     expv.mean <- mean(count.v)
     expv.zero <- sum(count.v == 0)/length(count.v)
-  }
-  else{
-    expv.quantile <- stats::quantile(log(count.v + 1))
-    expv.mean <- mean(log(count.v + 1))
-    expv.zero <- sum(count.v == 0)/length(count.v)
-  }
+  #}
+  #else{
+  #  expv.quantile <- stats::quantile(log(count.v + 1))
+  #  expv.mean <- mean(log(count.v + 1))
+  #  expv.zero <- sum(count.v == 0)/length(count.v)
+  #}
 
 
   if(model == "gaussian"){

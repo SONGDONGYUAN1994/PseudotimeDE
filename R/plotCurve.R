@@ -76,19 +76,20 @@ plotCurve <- function(gene.vec,
 
   dat <- dplyr::bind_rows(dat)
 
-if(assay.use == "logcounts"){
-  p <- dat %>% ggplot(aes(x = pseudotime, y = log_counts)) + geom_point(alpha = alpha) +
+if(assay.use == "counts"){
+  p <- dat %>% ggplot(aes(x = pseudotime, y = log10(counts+1))) + geom_point(alpha = alpha) +
     facet_wrap(~gene, ncol = ncol, scales = "free_y") +
     ylab("log10(count + 1)") +
-    geom_line(aes(y = fitted), col = "blue", lty = "dashed", size = 1) +
+    geom_line(aes(y = log10(fitted+1)), col = "blue", lty = "dashed", size = 1) +
     theme_bw()
+
 }
 else{
-    p <- dat %>% ggplot(aes(x = pseudotime, y = log10(counts+1))) + geom_point(alpha = alpha) +
-      facet_wrap(~gene, ncol = ncol, scales = "free_y") +
-      ylab("log10(count + 1)") +
-      geom_line(aes(y = log10(fitted+1)), col = "blue", lty = "dashed", size = 1) +
-      theme_bw()
+  p <- dat %>% ggplot(aes(x = pseudotime, y = log_counts)) + geom_point(alpha = alpha) +
+    facet_wrap(~gene, ncol = ncol, scales = "free_y") +
+    ylab("Expression") +
+    geom_line(aes(y = fitted), col = "blue", lty = "dashed", size = 1) +
+    theme_bw()
   }
 
   p

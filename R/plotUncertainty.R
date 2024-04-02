@@ -17,7 +17,7 @@ plotUncertainty <- function(ori.tbl,
                             sub.tbl) {
 
   n_subample <- length(sub.tbl)
-  cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- `..density..` <- NULL
+  cell <- gene <- ori_pseudotime <- pseudotimes <- pseudotime <- counts <- density <- NULL
 
   Cells_true_time <- as.data.frame(ori.tbl)
   colnames(Cells_true_time) <- c("cell", "ori_pseudotime")
