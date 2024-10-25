@@ -47,3 +47,40 @@ test_that("PseudotimeDE works", {
   expect_equal(class(res5)[1], "gg")
 })
 
+
+test_that("runPseudotimeDE works with Seurat object", {
+  data("LPS_sce")
+  data("LPS_ori_tbl")
+  data("LPS_sub_tbl")
+  
+  requireNamespace("Seurat")
+  
+  suppressWarnings(
+    LPS_seurat <- SeuratObject::as.Seurat(LPS_sce) |>
+      SeuratObject::RenameAssays(assay.name = "originalexp",
+                                 new.assay.name = "RNA")
+  )
+  
+  
+  res_sce <- runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                             ori.tbl = LPS_ori_tbl,
+                             sub.tbl = LPS_sub_tbl[1:100],
+                             mat = LPS_sce,
+                             model = "nb",
+                             mc.cores = 1)
+  
+  
+  res_seurat <- runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                                ori.tbl = LPS_ori_tbl,
+                                sub.tbl = LPS_sub_tbl[1:100],
+                                mat = LPS_seurat,
+                                model = "nb",
+                                mc.cores = 1)
+  
+  stable_colnames <- c("fix.pv", "emp.pv", "rank", "test.statistics", "aic", "expv.mean", "expv.zero")
+  
+  expect_equal(res_sce[1:2, stable_colnames],
+               res_seurat[1:2, stable_colnames])
+  expect_contains(class(res_seurat$notes[[3]]),
+                  "error")
+})
