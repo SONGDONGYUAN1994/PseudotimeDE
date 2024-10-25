@@ -57,7 +57,7 @@ runPseudotimeDE <- function(gene.vec,
   set.seed(seed)
 
   # Avoid package check error
-  expv.quantile <- gam.fit <- NULL
+  notes <- expv.quantile <- gam.fit <- NULL
 
   BPPARAM <- BiocParallel::bpparam()
   BPPARAM$workers <- mc.cores
@@ -78,7 +78,8 @@ runPseudotimeDE <- function(gene.vec,
                                             mat = mat[x,],
                                             model = model,
                                             assay.use = assay.use,
-                                            seurat.assay = seurat.assay), #input only the target gene
+                                            seurat.assay = seurat.assay) |>
+        append(stats::setNames("NA_character_", "notes")), #input only the target gene
                         error = function(e) {
                           list(fix.pv = NA,
                                emp.pv = NA,
@@ -91,7 +92,8 @@ runPseudotimeDE <- function(gene.vec,
                                aic = NA,
                                expv.quantile = NA,
                                expv.mean = NA,
-                               expv.zero = NA)
+                               expv.zero = NA,
+                               notes = e)
                         })
     cur_res
   },
@@ -111,7 +113,7 @@ runPseudotimeDE <- function(gene.vec,
     res <- t(res)
     rownames(res) <- gene.vec
     res <- tibble::as_tibble(res, rownames = "gene")
-    res <- tidyr::unnest(res, cols = ! (gam.fit | expv.quantile))
+    res <- tidyr::unnest(res, cols = ! (gam.fit | expv.quantile | notes))
   }
 
   res
