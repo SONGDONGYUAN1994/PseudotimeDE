@@ -84,3 +84,32 @@ test_that("runPseudotimeDE works with Seurat object", {
   expect_contains(class(res_seurat$notes[[3]]),
                   "error")
 })
+
+
+test_that("runPseudotimeDE works with matrix input", {
+  data("LPS_sce")
+  data("LPS_ori_tbl")
+  data("LPS_sub_tbl")
+  
+  LPS_count_mat <- SingleCellExperiment::counts(LPS_sce)
+  
+  res_sce <- runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                             ori.tbl = LPS_ori_tbl,
+                             sub.tbl = LPS_sub_tbl[1:100],
+                             mat = LPS_sce,
+                             model = "nb",
+                             mc.cores = 1)
+  
+  
+  res_count_mat <- runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                                   ori.tbl = LPS_ori_tbl,
+                                   sub.tbl = LPS_sub_tbl[1:100],
+                                   mat = LPS_count_mat,
+                                   model = "nb",
+                                   mc.cores = 1)
+  
+  expect_equal(res_sce[1:2, ], res_count_mat[1:2, ])
+  expect_contains(class(res_count_mat$notes[[3]]),
+                  "error")
+})
+

@@ -75,11 +75,11 @@ runPseudotimeDE <- function(gene.vec,
     cur_res <- tryCatch(expr = pseudotimeDE(gene = x,
                                             ori.tbl = ori.tbl,
                                             sub.tbl = sub.tbl,
-                                            mat = mat[x,],
+                                            mat = mat,
                                             model = model,
                                             assay.use = assay.use,
                                             seurat.assay = seurat.assay) |>
-        append(stats::setNames("NA_character_", "notes")), #input only the target gene
+        append(stats::setNames("NA_character_", "notes")),
                         error = function(e) {
                           list(fix.pv = NA,
                                emp.pv = NA,
