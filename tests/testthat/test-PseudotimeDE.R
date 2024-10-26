@@ -113,3 +113,54 @@ test_that("runPseudotimeDE works with matrix input", {
                   "error")
 })
 
+
+test_that("We can change parameters", {
+  data("LPS_sce")
+  data("LPS_ori_tbl")
+  data("LPS_sub_tbl")
+  
+  res_k6 <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                       ori.tbl = LPS_ori_tbl,
+                                       sub.tbl = LPS_sub_tbl[1:100],
+                                       mat = LPS_sce,
+                                       model = "nb")
+  
+  expect_identical(as.character(formula(res_k6$gam.fit))[[3]],
+                   's(pseudotime, k = 6, bs = "cr")')
+  
+  res_k7 <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                       ori.tbl = LPS_ori_tbl,
+                                       sub.tbl = LPS_sub_tbl[1:100],
+                                       mat = LPS_sce,
+                                       model = "nb",
+                                       k = 7,
+                                       knots = c(0:6/6))
+  
+  expect_identical(as.character(formula(res_k7$gam.fit))[[3]],
+                   's(pseudotime, k = 7, bs = "cr")')
+  
+  res_run_k6 <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                                              ori.tbl = LPS_ori_tbl,
+                                              sub.tbl = LPS_sub_tbl[1:100],
+                                              mat = LPS_sce,
+                                              model = "auto",
+                                              mc.cores = 1)
+  
+  expect_identical(as.character(formula(res_run_k6$gam.fit[[1]]))[[3]],
+                   's(pseudotime, k = 6, bs = "cr")')
+  
+  
+  res_run_k7 <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                                              ori.tbl = LPS_ori_tbl,
+                                              sub.tbl = LPS_sub_tbl[1:100],
+                                              mat = LPS_sce,
+                                              model = "auto",
+                                              k = 7,
+                                              knots = c(0:6/6),
+                                              mc.cores = 1)
+  
+  expect_identical(as.character(formula(res_run_k7$gam.fit[[1]]))[[3]],
+                   's(pseudotime, k = 7, bs = "cr")')
+  
+  
+})

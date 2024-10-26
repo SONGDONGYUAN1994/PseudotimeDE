@@ -77,6 +77,12 @@ runPseudotimeDE <- function(gene.vec,
                                             sub.tbl = sub.tbl,
                                             mat = mat,
                                             model = model,
+                                            k = k,
+                                            knots = knots,
+                                            fix.weight = fix.weight,
+                                            aicdiff = aicdiff,
+                                            quant = quant,
+                                            usebam = usebam,
                                             assay.use = assay.use,
                                             seurat.assay = seurat.assay) |>
         append(stats::setNames("NA_character_", "notes")),
@@ -97,14 +103,6 @@ runPseudotimeDE <- function(gene.vec,
                         })
     cur_res
   },
-  assay.use = assay.use,
-  k = k,
-  knots = knots,
-  fix.weight = fix.weight,
-  aicdiff = aicdiff,
-  quant = quant,
-  usebam = usebam,
-  seurat.assay = seurat.assay,
   BPPARAM = BPPARAM)
 
 
