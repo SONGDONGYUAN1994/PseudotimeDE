@@ -16,6 +16,7 @@
 #' @param model A string of the model name. One of \code{nb}, \code{zinb}, \code{gaussian}, \code{auto} and \code{qgam}.
 #' @param k A integer of the basis dimension. Default is 6. The results are usually robust to different k; we recommend to use k from 5 to 10.
 #' @param knots A numeric vector of the location of knots. Default is evenly distributed between 0 to 1. For instance, if your k = 6, and your range is [0, 10], then the position of knots should be \code{c(0:5)*(10-0)}.
+#' @param bs A string indicating the spline smoothing basis. See \code{?mgcv::smooth.terms} for available options.
 #' @param fix.weight A logic variable indicating if the ZINB-GAM will use the zero weights from the original model.
 #' @param aicdiff A numeric variable of the threshold of model selection. Only works when \code{model = `auto`}.
 #' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
@@ -45,6 +46,7 @@ runPseudotimeDE <- function(gene.vec,
                             model = c("nb", "zinb", "gaussian", "auto", "qgam"),
                             k = 6,
                             knots = c(0:5/5),
+                            bs = "cr",
                             fix.weight = TRUE,
                             aicdiff = 10,
                             seed = 123,
@@ -79,6 +81,7 @@ runPseudotimeDE <- function(gene.vec,
                                             model = model,
                                             k = k,
                                             knots = knots,
+                                            bs = bs,
                                             fix.weight = fix.weight,
                                             aicdiff = aicdiff,
                                             quant = quant,
