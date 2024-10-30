@@ -18,6 +18,7 @@ runPseudotimeDE(
   seed = 123,
   quant = 0.5,
   usebam = FALSE,
+  formula = NULL,
   seurat.assay = "RNA",
   mc.cores = 2,
   mc.preschedule = TRUE,
@@ -54,6 +55,8 @@ Its row names should be genes and col names should be cells.}
 \item{quant}{The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5 (median).}
 
 \item{usebam}{A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).}
+
+\item{formula}{An (optional) custom formula to be passed to \code{mgcv::gam}, \code{mgcv::bam}, or \code{qgam::qgam}.}
 
 \item{seurat.assay}{The \code{assay} used in Seurat. Default is \code{'RNA'}.}
 
