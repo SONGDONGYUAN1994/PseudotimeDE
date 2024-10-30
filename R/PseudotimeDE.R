@@ -125,11 +125,11 @@ pseudotimeDE <- function(gene,
 
 
   if(model == "gaussian"){
-    fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
+    fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula)
     aic.gaussian <- stats::AIC(fit.gaussian)
   }
   else if(model == "qgam"){
-    fit.qgam <- fit_qgam(dat, k = k, quant = quant)
+    fit.qgam <- fit_qgam(dat, k = k, quant = quant, fit.formula = fit.formula)
     aic.qgam <- stats::AIC(fit.qgam)
   }
   else{
@@ -140,7 +140,7 @@ pseudotimeDE <- function(gene,
 
 
   if(model == "nb") {
-    fit <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
+    fit <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula)
     zinf <- FALSE
     distri <- "nb"
     aic <- stats::AIC(fit)
@@ -161,7 +161,7 @@ pseudotimeDE <- function(gene,
     aic <- aic.zinb
   }
   else if (model == "auto") {
-    fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
+    fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula)
     aic.nb <- stats::AIC(fit.nb)
 
     fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k, usebam = usebam)
@@ -263,7 +263,7 @@ pseudotimeDE <- function(gene,
     dplyr::mutate(splits = purrr::map(time.res, function(x){
       x <- cbind(expv = count.v[x$cell], pseudotime = base::sample(x$pseudotime), cellWeights = cell_weights[x$cell]) %>% as.data.frame(); x
     })) %>%
-    dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, distribution = distri, use_weights = fix.weight, k = k, knots = knots, usebam = usebam),
+    dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, distribution = distri, use_weights = fix.weight, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula),
                   stat = sapply(model, function(fit) {
                     if(is.logical(fit)) {Tr <- NA}
                     else {
@@ -302,9 +302,8 @@ pseudotimeDE <- function(gene,
 }
 
 # added qgam model
-fit_qgam <- function(dat, quant, k) {
+fit_qgam <- function(dat, quant, k, fit.formula) {
 
-  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
   fit.qgam <- tryCatch(expr = {
     fit <- qgam::qgam(fit.formula, data = dat, qu = quant)
@@ -319,11 +318,9 @@ fit_qgam <- function(dat, quant, k) {
 
 ## set distribution method
 # zinf
-fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k, usebam) {
+fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k, usebam, fit.formula) {
   if(use_weights) {cellWeights <- dat$cellWeights}
   else cellWeights <- rep(1, dim(dat)[1])
-
-  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
 
 
