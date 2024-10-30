@@ -19,6 +19,7 @@
 #' @param seed A numeric variable of the random seed. It mainly affects the parametricfitting of null distribution.
 #' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.
 #' @param usebam A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).
+#' @param formula An (optional) custom formula to be passed to \code{mgcv::gam}, \code{mgcv::bam}, or \code{qgam::qgam}.
 #' @param seurat.assay The \code{assay} used in Seurat. Default is \code{'RNA'}.
 #'
 #' @return A list with the components:
@@ -57,6 +58,7 @@ pseudotimeDE <- function(gene,
                          seed = 123,
                          quant = 0.5,
                          usebam = FALSE,
+                         formula = NULL,
                          seurat.assay = 'RNA') {
 
   ## Set seed
@@ -82,7 +84,22 @@ pseudotimeDE <- function(gene,
 
 
   ## Construct formula
-  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
+  if(is.null(formula)){
+    
+    fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
+    
+  }
+  else{
+    
+    if(inherits(formula, "formula")){
+      fit.formula <- formula
+    }
+    else{
+      stop("Invalid custom formula")
+    }
+    
+  }
+  
 
   num_cell <- length(ori.tbl$cell)
   pseudotime <- ori.tbl$pseudotime
@@ -141,18 +158,24 @@ pseudotimeDE <- function(gene,
 
   if(model == "nb") {
     fit <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula)
+    if(identical(fit, FALSE)) stop("Fit failed")
+    
     zinf <- FALSE
     distri <- "nb"
     aic <- stats::AIC(fit)
   }
   else if(model == "gaussian"){
     fit <- fit.gaussian
+    if(identical(fit, FALSE)) stop("Fit failed")
+    
     zinf <- FALSE
     distri <- "gaussian"
     aic <- aic.gaussian
   }
   else if (model == "zinb"){
     fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k, usebam = usebam)
+    if(identical(fit.zinb, FALSE)) stop("Fit failed")
+    
     aic.zinb <- fit.zinb$aic
     fit.zinb <- fit.zinb$fit.mu
     zinf <- TRUE
@@ -162,9 +185,13 @@ pseudotimeDE <- function(gene,
   }
   else if (model == "auto") {
     fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula)
+    if(identical(fit.nb, FALSE)) stop("Fit failed")
+    
     aic.nb <- stats::AIC(fit.nb)
 
     fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k, usebam = usebam)
+    if(identical(fit.zinb, FALSE)) stop("Fit failed")
+    
     aic.zinb <- fit.zinb$aic
     fit.zinb <- fit.zinb$fit.mu
 
@@ -200,8 +227,9 @@ pseudotimeDE <- function(gene,
   V <- fit$Vp
   rank <- sum(fit$edf1) - 1
   Xp <- stats::model.matrix(fit)
-
-  Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
+  k_col <- ncol(Xp)
+  
+  Tr <- testStat(p = p[2:k_col], X = Xp[, 2:k_col,drop=FALSE], V = V[2:k_col, 2:k_col,drop=FALSE], rank = rank, res.df = -1, type = 0)
   Tr <- Tr$stat
 
   ## Matteo 2020 qgam JASA
@@ -274,7 +302,7 @@ pseudotimeDE <- function(gene,
                       rank <- sum(fit$edf1) - 1
                       Xp <- stats::model.matrix(fit)
 
-                      Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
+                      Tr <- testStat(p = p[2:k_col], X = Xp[, 2:k_col,drop=FALSE], V = V[2:k_col, 2:k_col,drop=FALSE], rank = rank, res.df = -1, type = 0)
                       Tr <- as.numeric(Tr$stat)}
 
                     return(Tr)

@@ -229,3 +229,147 @@ test_that("qgam works",{
 })
 
 
+
+test_that("We can change spline basis", {
+  data("LPS_sce")
+  data("LPS_ori_tbl")
+  data("LPS_sub_tbl")
+
+
+  # just pseudotimeDE
+
+  res_cr <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                       ori.tbl = LPS_ori_tbl,
+                                       sub.tbl = LPS_sub_tbl[1:100],
+                                       mat = LPS_sce,
+                                       model = "nb")
+
+  expect_identical(as.character(formula(res_cr$gam.fit))[[3]],
+                   's(pseudotime, k = 6, bs = "cr")')
+
+
+
+  res_cr_formula <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                       ori.tbl = LPS_ori_tbl,
+                                       sub.tbl = LPS_sub_tbl[1:100],
+                                       mat = LPS_sce,
+                                       model = "nb",
+                                       formula = expv ~ s(pseudotime, k = 6,bs = 'cr') )
+
+  expect_identical(as.character(formula(res_cr_formula$gam.fit))[[3]],
+                   's(pseudotime, k = 6, bs = "cr")')
+  
+  expect_equal(res_cr, res_cr_formula)
+  
+  
+  res_cs <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                               ori.tbl = LPS_ori_tbl,
+                                               sub.tbl = LPS_sub_tbl[1:100],
+                                               mat = LPS_sce,
+                                               model = "nb",
+                                               formula = expv ~ s(pseudotime, k = 6, bs = 'cs') )
+  
+  expect_identical(as.character(formula(res_cs$gam.fit))[[3]],
+                   's(pseudotime, k = 6, bs = "cs")')
+
+  expect_equal(res_cr$expv.quantile,
+               res_cs$expv.quantile)
+
+  
+  res_cc <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                       formula = expv ~ s(pseudotime, k = 6, bs = 'cc') ,
+                                       ori.tbl = LPS_ori_tbl,
+                                       sub.tbl = LPS_sub_tbl[1:100],
+                                       mat = LPS_sce,
+                                       model = "nb")
+
+  expect_identical(as.character(formula(res_cc$gam.fit))[[3]],
+                   's(pseudotime, k = 6, bs = "cc")')
+
+  expect_equal(res_cr$expv.quantile,
+               res_cc$expv.quantile)
+
+  
+  
+  
+  # test in runPseudotimeDE
+  
+  res_run_nb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                                              ori.tbl = LPS_ori_tbl,
+                                              sub.tbl = LPS_sub_tbl[1:100],
+                                              mat = LPS_sce,
+                                              model = "nb",
+                                              mc.cores = 1)
+  
+  expect_equal(dim(res_run_nb)[1], 3)
+  expect_false( any(is.na(res_run_nb$test.statistics[1:2])) )
+  expect_true( is.na(res_run_nb$test.statistics[[3]]) )
+  expect_contains(class( res_run_nb$notes[[3]] ),
+                  "error")
+  
+  
+  res_run_cs <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                                              ori.tbl = LPS_ori_tbl,
+                                              sub.tbl = LPS_sub_tbl[1:100],
+                                              formula = expv ~ s(pseudotime, k = 6, bs = 'cs'),
+                                              mat = LPS_sce,
+                                              model = "nb",
+                                              mc.cores = 1)
+  
+  
+  expect_equal(dim(res_run_cs)[1], 3)
+  expect_false( any(is.na(res_run_cs$test.statistics[1:2])) )
+  expect_true( is.na(res_run_cs$test.statistics[[3]]) )
+  expect_contains(class( res_run_cs$notes[[3]] ),
+                  "error")
+  
+  expect_equal(res_run_nb$expv.quantile,
+               res_run_cs$expv.quantile)
+
+})
+
+
+
+test_that("We can use adaptive smoothing in PseudotimeDE", {
+  
+  skip(message = "While possible, too slow/memory-hungry")
+  
+  data("LPS_sce")
+  data("LPS_ori_tbl")
+  data("LPS_sub_tbl")
+  
+  
+  # just pseudotimeDE
+  
+  res_cr <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                       ori.tbl = LPS_ori_tbl,
+                                       sub.tbl = LPS_sub_tbl[1:100],
+                                       mat = LPS_sce,
+                                       model = "nb")
+  
+  expect_identical(as.character(formula(res_cr$gam.fit))[[3]],
+                   's(pseudotime, k = 6, bs = "cr")')
+  
+  
+  
+  
+  res_ad_cr <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                          ori.tbl = LPS_ori_tbl,
+                                          sub.tbl = LPS_sub_tbl[1:100],
+                                          mat = LPS_sce,
+                                          model = "nb",
+                                          formula = expv ~ s(pseudotime, k = 12, bs = 'ad', xt = list(bs = 'cr')),
+                                          k = 12,
+                                          knots = c(0:11/11))
+  
+  expect_identical(as.character(formula(res_ad_cr$gam.fit))[[3]],
+                   's(pseudotime, k = 12, bs = "ad", xt = list(bs = "cr"))')
+  
+  expect_equal(res_cr$expv.quantile,
+               res_ad_cr$expv.quantile)
+  
+  
+  
+})
+
+
