@@ -164,3 +164,68 @@ test_that("We can change parameters", {
   
   
 })
+
+
+test_that("qgam works",{
+  data("LPS_sce")
+  data("LPS_ori_tbl")
+  data("LPS_sub_tbl")
+  
+  res_nb <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                       ori.tbl = LPS_ori_tbl,
+                                       sub.tbl = LPS_sub_tbl[1:100],
+                                       mat = LPS_sce,
+                                       model = "nb")
+  expect_equal(length(res_nb), 12)
+  expect_false(is.na(res_nb$test.statistics))
+  
+  capture_output(
+    res_qgam <- PseudotimeDE::pseudotimeDE(gene = "CCL5",
+                                           ori.tbl = LPS_ori_tbl,
+                                           sub.tbl = LPS_sub_tbl[1:100],
+                                           mat = LPS_sce,
+                                           model = "qgam")
+  )
+  
+  expect_equal(length(res_qgam), 12)
+  expect_false(is.na(res_qgam$test.statistic))
+  
+  expect_equal(res_nb$expv.quantile, res_qgam$expv.quantile)
+  
+  
+  
+  
+  res_run_nb <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                                              ori.tbl = LPS_ori_tbl,
+                                              sub.tbl = LPS_sub_tbl[1:100],
+                                              mat = LPS_sce,
+                                              model = "nb",
+                                              mc.cores = 1)
+  
+  expect_equal(dim(res_run_nb)[1], 3)
+  expect_false( any(is.na(res_run_nb$test.statistics[1:2])) )
+  expect_true( is.na(res_run_nb$test.statistics[[3]]) )
+  expect_contains(class( res_run_nb$notes[[3]] ),
+                  "error")
+  
+  capture_output(
+    res_run_qgam <- PseudotimeDE::runPseudotimeDE(gene.vec = c("CCL5", "CXCL10", "JustAJoke"),
+                                                  ori.tbl = LPS_ori_tbl,
+                                                  sub.tbl = LPS_sub_tbl[1:100],
+                                                  mat = LPS_sce,
+                                                  model = "qgam",
+                                                  mc.cores = 1)
+  )
+  
+  expect_equal(dim(res_run_qgam)[1], 3)
+  expect_false( any(is.na(res_run_qgam$test.statistic[1:2])) )
+  expect_true( is.na(res_run_qgam$test.statistic[[3]]) )
+  expect_contains(class( res_run_qgam$notes[[3]] ),
+                  "error")
+  
+  expect_equal(res_run_nb$expv.quantile,
+               res_run_qgam$expv.quantile)
+  
+})
+
+
