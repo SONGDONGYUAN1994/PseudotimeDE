@@ -21,6 +21,7 @@
 #' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
 #' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5 (median).
 #' @param usebam A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).
+#' @param formula An (optional) custom formula to be passed to \code{mgcv::gam}, \code{mgcv::bam}, or \code{qgam::qgam}.
 #' @param seurat.assay The \code{assay} used in Seurat. Default is \code{'RNA'}.
 #' @param mc.cores Number of cores for computing.
 #' @param mc.preschedule See \code{mclapply}. Default is TRUE.
@@ -50,6 +51,7 @@ runPseudotimeDE <- function(gene.vec,
                             seed = 123,
                             quant = 0.5,
                             usebam = FALSE,
+                            formula = NULL,
                             seurat.assay = 'RNA',
                             mc.cores = 2,
                             mc.preschedule = TRUE,
@@ -83,6 +85,7 @@ runPseudotimeDE <- function(gene.vec,
                                             aicdiff = aicdiff,
                                             quant = quant,
                                             usebam = usebam,
+                                            formula = formula,
                                             assay.use = assay.use,
                                             seurat.assay = seurat.assay) |>
         append(stats::setNames("NA_character_", "notes")),
