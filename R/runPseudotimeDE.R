@@ -57,7 +57,7 @@ runPseudotimeDE <- function(gene.vec,
   set.seed(seed)
 
   # Avoid package check error
-  expv.quantile <- gam.fit <- NULL
+  notes <- expv.quantile <- gam.fit <- NULL
 
   BPPARAM <- BiocParallel::bpparam()
   BPPARAM$workers <- mc.cores
@@ -75,10 +75,17 @@ runPseudotimeDE <- function(gene.vec,
     cur_res <- tryCatch(expr = pseudotimeDE(gene = x,
                                             ori.tbl = ori.tbl,
                                             sub.tbl = sub.tbl,
-                                            mat = mat[x,],
+                                            mat = mat,
                                             model = model,
+                                            k = k,
+                                            knots = knots,
+                                            fix.weight = fix.weight,
+                                            aicdiff = aicdiff,
+                                            quant = quant,
+                                            usebam = usebam,
                                             assay.use = assay.use,
-                                            seurat.assay = seurat.assay), #input only the target gene
+                                            seurat.assay = seurat.assay) |>
+        append(stats::setNames("NA_character_", "notes")),
                         error = function(e) {
                           list(fix.pv = NA,
                                emp.pv = NA,
@@ -91,18 +98,11 @@ runPseudotimeDE <- function(gene.vec,
                                aic = NA,
                                expv.quantile = NA,
                                expv.mean = NA,
-                               expv.zero = NA)
+                               expv.zero = NA,
+                               notes = e)
                         })
     cur_res
   },
-  assay.use = assay.use,
-  k = k,
-  knots = knots,
-  fix.weight = fix.weight,
-  aicdiff = aicdiff,
-  quant = quant,
-  usebam = usebam,
-  seurat.assay = seurat.assay,
   BPPARAM = BPPARAM)
 
 
@@ -111,7 +111,7 @@ runPseudotimeDE <- function(gene.vec,
     res <- t(res)
     rownames(res) <- gene.vec
     res <- tibble::as_tibble(res, rownames = "gene")
-    res <- tidyr::unnest(res, cols = ! (gam.fit | expv.quantile))
+    res <- tidyr::unnest(res, cols = ! (gam.fit | expv.quantile | notes))
   }
 
   res

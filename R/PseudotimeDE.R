@@ -76,6 +76,9 @@ pseudotimeDE <- function(gene,
   #   }
   # }
 
+  if(length(knots) != k){
+    stop("The number of knot positions given (",length(knots),") does not match k.")
+  }
 
 
   ## Construct formula

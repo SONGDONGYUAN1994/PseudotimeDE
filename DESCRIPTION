@@ -33,6 +33,7 @@ Suggests:
     rmarkdown,
     SingleCellExperiment,
     irlba,
+    SeuratObject,
     scales,
     slingshot,
     BiocStyle,
