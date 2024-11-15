@@ -19,7 +19,6 @@
 #' @param seed A numeric variable of the random seed. It mainly affects the parametricfitting of null distribution.
 #' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5.
 #' @param usebam A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).
-#' @param formula An (optional) custom formula to be passed to \code{mgcv::gam}, \code{mgcv::bam}, or \code{qgam::qgam}.
 #' @param seurat.assay The \code{assay} used in Seurat. Default is \code{'RNA'}.
 #'
 #' @return A list with the components:
@@ -58,7 +57,6 @@ pseudotimeDE <- function(gene,
                          seed = 123,
                          quant = 0.5,
                          usebam = FALSE,
-                         formula = NULL,
                          seurat.assay = 'RNA') {
 
   ## Set seed
@@ -78,28 +76,10 @@ pseudotimeDE <- function(gene,
   #   }
   # }
 
-  if(length(knots) != k){
-    stop("The number of knot positions given (",length(knots),") does not match k.")
-  }
 
 
   ## Construct formula
-  if(is.null(formula)){
-    
-    fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
-    
-  }
-  else{
-    
-    if(inherits(formula, "formula")){
-      fit.formula <- formula
-    }
-    else{
-      stop("Invalid custom formula")
-    }
-    
-  }
-  
+  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
   num_cell <- length(ori.tbl$cell)
   pseudotime <- ori.tbl$pseudotime
@@ -142,11 +122,11 @@ pseudotimeDE <- function(gene,
 
 
   if(model == "gaussian"){
-    fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula)
+    fit.gaussian <- fit_gam(dat, distribution = "gaussian", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
     aic.gaussian <- stats::AIC(fit.gaussian)
   }
   else if(model == "qgam"){
-    fit.qgam <- fit_qgam(dat, k = k, quant = quant, fit.formula = fit.formula)
+    fit.qgam <- fit_qgam(dat, k = k, quant = quant)
     aic.qgam <- stats::AIC(fit.qgam)
   }
   else{
@@ -157,25 +137,19 @@ pseudotimeDE <- function(gene,
 
 
   if(model == "nb") {
-    fit <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula)
-    if(identical(fit, FALSE)) stop("Fit failed")
-    
+    fit <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
     zinf <- FALSE
     distri <- "nb"
     aic <- stats::AIC(fit)
   }
   else if(model == "gaussian"){
     fit <- fit.gaussian
-    if(identical(fit, FALSE)) stop("Fit failed")
-    
     zinf <- FALSE
     distri <- "gaussian"
     aic <- aic.gaussian
   }
   else if (model == "zinb"){
     fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k, usebam = usebam)
-    if(identical(fit.zinb, FALSE)) stop("Fit failed")
-    
     aic.zinb <- fit.zinb$aic
     fit.zinb <- fit.zinb$fit.mu
     zinf <- TRUE
@@ -184,14 +158,10 @@ pseudotimeDE <- function(gene,
     aic <- aic.zinb
   }
   else if (model == "auto") {
-    fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula)
-    if(identical(fit.nb, FALSE)) stop("Fit failed")
-    
+    fit.nb <- fit_gam(dat, distribution = "nb", use_weights = FALSE, k = k, knots = knots, usebam = usebam)
     aic.nb <- stats::AIC(fit.nb)
 
     fit.zinb <- zinbgam(fit.formula, ~ logmu, data = dat, knots = knots, k = k, usebam = usebam)
-    if(identical(fit.zinb, FALSE)) stop("Fit failed")
-    
     aic.zinb <- fit.zinb$aic
     fit.zinb <- fit.zinb$fit.mu
 
@@ -227,9 +197,8 @@ pseudotimeDE <- function(gene,
   V <- fit$Vp
   rank <- sum(fit$edf1) - 1
   Xp <- stats::model.matrix(fit)
-  k_col <- ncol(Xp)
-  
-  Tr <- testStat(p = p[2:k_col], X = Xp[, 2:k_col,drop=FALSE], V = V[2:k_col, 2:k_col,drop=FALSE], rank = rank, res.df = -1, type = 0)
+
+  Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
   Tr <- Tr$stat
 
   ## Matteo 2020 qgam JASA
@@ -291,7 +260,7 @@ pseudotimeDE <- function(gene,
     dplyr::mutate(splits = purrr::map(time.res, function(x){
       x <- cbind(expv = count.v[x$cell], pseudotime = base::sample(x$pseudotime), cellWeights = cell_weights[x$cell]) %>% as.data.frame(); x
     })) %>%
-    dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, distribution = distri, use_weights = fix.weight, k = k, knots = knots, usebam = usebam, fit.formula = fit.formula),
+    dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, distribution = distri, use_weights = fix.weight, k = k, knots = knots, usebam = usebam),
                   stat = sapply(model, function(fit) {
                     if(is.logical(fit)) {Tr <- NA}
                     else {
@@ -302,7 +271,7 @@ pseudotimeDE <- function(gene,
                       rank <- sum(fit$edf1) - 1
                       Xp <- stats::model.matrix(fit)
 
-                      Tr <- testStat(p = p[2:k_col], X = Xp[, 2:k_col,drop=FALSE], V = V[2:k_col, 2:k_col,drop=FALSE], rank = rank, res.df = -1, type = 0)
+                      Tr <- testStat(p = p[2:k], X = Xp[, 2:k,drop=FALSE], V = V[2:k, 2:k,drop=FALSE], rank = rank, res.df = -1, type = 0)
                       Tr <- as.numeric(Tr$stat)}
 
                     return(Tr)
@@ -330,8 +299,9 @@ pseudotimeDE <- function(gene,
 }
 
 # added qgam model
-fit_qgam <- function(dat, quant, k, fit.formula) {
+fit_qgam <- function(dat, quant, k) {
 
+  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
   fit.qgam <- tryCatch(expr = {
     fit <- qgam::qgam(fit.formula, data = dat, qu = quant)
@@ -346,9 +316,11 @@ fit_qgam <- function(dat, quant, k, fit.formula) {
 
 ## set distribution method
 # zinf
-fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k, usebam, fit.formula) {
+fit_gam <- function(dat, nthreads = 1, distribution, use_weights, knots, k, usebam) {
   if(use_weights) {cellWeights <- dat$cellWeights}
   else cellWeights <- rep(1, dim(dat)[1])
+
+  fit.formula <- stats::as.formula(paste0("expv ~ s(pseudotime, k = ", k, ",bs = 'cr')"))
 
 
 
