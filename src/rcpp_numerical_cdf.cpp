@@ -71,7 +71,7 @@ void bisect(arma::vec& positions, arma::vec& values,
     positions(2 * i) = positions(i);
     values(2 * i) = values(i);
   }
-  for (int i = 1; i < positions.size(); i += 2) {
+  for (unsigned int i = 1; i < positions.size(); i += 2) {
     positions(i) = (positions(i + 1) + positions(i - 1)) / 2.0;
     values(i) = 2.0 * intEval.integrand(x, positions(i), integrandError).real();
   }
@@ -97,7 +97,7 @@ double riemannIntegrate(const arma::vec& positions, const arma::vec& values) {
   sum += values(0) * (2 * bisectVal);
   
   // Looping through position 1,...,n - 2
-  for (int i = 1; i <= positions.size() - 2; i++) {
+  for (unsigned int i = 1; i <= positions.size() - 2; i++) {
     double lastBisectVal = bisectVal;
     bisectVal = (positions(i + 1) + positions(i)) / 2;
     double intervalWidth = (bisectVal - lastBisectVal);
@@ -209,17 +209,17 @@ double boundInZeroOne(double x) {
    arma::vec cdf(p.size());
    arma::vec q1(p.size());
    cdf[0] = p[0];
-   for (int i = 1; i < p.size(); i++) {
+   for (unsigned int i = 1; i < p.size(); i++) {
      cdf[i] = cdf[i - 1] + p[i];
    }
    q1[0] = p[0] * (1 - cdf[0]);
-   for (int i = 1; i < p.size(); i++) {
+   for (unsigned int i = 1; i < p.size(); i++) {
      q1[i] = q1[i-1] + p[i] * (1 - cdf[i]);
    }
    
    arma::mat symMat(p.size(), p.size());
-   for(int i = 0; i < p.size(); i++) {
-     for(int j = i; j < p.size(); j++) {
+   for(unsigned int i = 0; i < p.size(); i++) {
+     for(unsigned int j = i; j < p.size(); j++) {
        if (i == 0) {
          symMat(i,j) = (1 - cdf[j]) * (1 - cdf[j]);
        } else {
@@ -244,7 +244,7 @@ double boundInZeroOne(double x) {
 arma::vec HoeffIndMixedCdfRCPP(arma::vec x, arma::vec eigenP, double maxError) {
   AsymMixedCdfIntegrandEvaluator amcie(eigenP);
   arma::vec cdfVals(x.size());
-  for (int i = 0; i < x.size(); i++) {
+  for (unsigned int i = 0; i < x.size(); i++) {
     cdfVals[i] = boundInZeroOne(
       numericalCfInversion(amcie, x[i], 10.0, maxError, 12));
   }

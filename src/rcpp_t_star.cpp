@@ -46,7 +46,7 @@ void InfoDest(void *a) { }
  * @param n the number of elements in the vec array
  */
 void bubbleSort(long double * vec, int n) {
-	int i,j,k;
+	int i,j;
 	long double tmp;
 	for(i = n - 1; i > 0; i--) {
 		for(j = 0; j < i; j++) {
@@ -75,7 +75,7 @@ arma::uvec vecToRanks(const arma::vec& x) {
   arma::uvec repeats = arma::zeros<arma::uvec>(x.n_elem);
   int k = 1;
   double last = x[xSortedInds[0]];
-  for (int i = 0; i < x.n_elem; i++) {
+  for (unsigned int i = 0; i < x.n_elem; i++) {
     double current = x[xSortedInds[i]];
     if (current != last) {
       k++;
@@ -83,7 +83,7 @@ arma::uvec vecToRanks(const arma::vec& x) {
     }
     repeats[i] = k;
   }
-  for (int i = 0; i < xSortedInds.n_elem; i++) {
+  for (unsigned int i = 0; i < xSortedInds.n_elem; i++) {
     ranks[xSortedInds[i]] = repeats[i];
   }
   return ranks;
@@ -104,7 +104,7 @@ arma::Mat<long long> ranksToLeqMat(const arma::uvec& xRanks, const arma::uvec& y
   int xMax = xRanks.max();
   int yMax = yRanks.max();
   arma::Mat<long long> leqMat = arma::zeros<arma::Mat<long long>>(xMax + 1, yMax + 1);
-  for (int i = 0; i < xRanks.n_elem; i++) {
+  for (unsigned int i = 0; i < xRanks.n_elem; i++) {
     leqMat(xRanks[i], yRanks[i]) += 1;
   }
   for (int i = 1; i <= xMax; i++) {
@@ -127,8 +127,8 @@ arma::Mat<long long> ranksToLeqMat(const arma::uvec& xRanks, const arma::uvec& y
 
 arma::Mat<long long> leqMatToUniqueCountMat(const arma::Mat<long long>& leqMat) {
   arma::Mat<long long> uCountMat = arma::zeros<arma::Mat<long long>>(leqMat.n_rows, leqMat.n_cols);
-  for (int i = 1; i < leqMat.n_rows; i++) {
-    for (int j = 1; j < leqMat.n_cols; j++) {
+  for (unsigned int i = 1; i < leqMat.n_rows; i++) {
+    for (unsigned int j = 1; j < leqMat.n_cols; j++) {
       int numEqYAndLessOrEqX = leqMat(i, j) - leqMat(i, j - 1);
       uCountMat(i,j) = uCountMat(i, j - 1) +
         (numEqYAndLessOrEqX * (numEqYAndLessOrEqX - 1)) / 2;
@@ -149,7 +149,7 @@ arma::Mat<long long> leqMatToUniqueCountMat(const arma::Mat<long long>& leqMat) 
  */
 arma::uvec indexUvec(const arma::uvec& x, const arma::uvec& inds) {
   arma::uvec newVec = arma::zeros<arma::uvec>(inds.n_elem);
-  for (int i = 0; i < newVec.n_elem; i++) {
+  for (unsigned int i = 0; i < newVec.n_elem; i++) {
     newVec[i] = x[inds[i]];
   }
   return newVec;
@@ -190,7 +190,7 @@ double TStarHellerAndHellerRCPP(const arma::vec& x, const arma::vec& y) {
     yRankCount[i] = leqMat(xmax, i) - leqMat(xmax, i - 1);
   }
   
-  for (int i = 0; i < xRanks.n_elem - 1; i++) {
+  for (unsigned int i = 0; i < xRanks.n_elem - 1; i++) {
     yRankCount[yRanks[i]] -= 1;
     int xRankMin = xRanks[i];
     for (int cnt = 1; cnt <= ymax; cnt++){ // loop over the unique values of y
