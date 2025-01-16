@@ -175,7 +175,7 @@ tauStarTest <- function(x, y, error = 0.01, mode = "auto") {
     stop(paste("vectors inputted to tauStarTest must be of type numeric or",
                "integer and must be the same length"))
   }
-  if (mode != "auto" || mode != "permute" || mode != "asymptotic"){
+  if (mode != "auto" && mode != "permute" && mode != "asymptotic"){
     stop("Mode must be auto, permute or asymptotic")
   }  
 
