@@ -169,12 +169,15 @@ isValidDataVector <- function(x) {
 #' y = y + x # make x and y correlated
 #' testResults = tauStarTest(x,y)
 #' print(testResults$pVal) # small p-value
-tauStarTest <- function(x, y, error = 0.01) {
+tauStarTest <- function(x, y, error = 0.01, mode = "auto") {
   if (!isValidDataVector(x) || !isValidDataVector(y) ||
       length(x) != length(y)) {
     stop(paste("vectors inputted to tauStarTest must be of type numeric or",
                "integer and must be the same length"))
   }
+  if (mode != "auto" || mode != "permute" || mode != "asymptotic"){
+    stop("Mode must be auto, permute or asymptotic")
+  }  
 
   xIsDis = isDiscrete(x)
   yIsDis = isDiscrete(y)
@@ -189,20 +192,34 @@ tauStarTest <- function(x, y, error = 0.01) {
   
   toReturn = list()
   class(toReturn) = "tstest"
-  mode = "mixed"
-  toReturn$mode = mode
   toReturn$x = x
   toReturn$y = y
   toReturn$tStar = tStar(x, y)
   
   if (yIsDis){
+    if (length(unique(y)) == 1){
+      toReturn$pVal = 1
+      return(toReturn)
+    }  
     if (length(unique(y)) <= 50) 
       p = as.numeric(table(y))/n
     else {
       lbr = quantile(y, 0:50/50)
       p = hist(y, breaks = unique(lbr), plot = F)$counts/n
     }
-    toReturn$pVal = 1 - pMixHoeffInd(n * toReturn$tStar, probs = p, error = error)
+
+    if (mode == "permute" || (mode == "auto" && any(p > 0.99))){
+      taustar_p = NULL
+      for(i in c(1:100)){
+        temp = tStar(sample(x), y)
+        taustar_p = c(taustar_p, temp)
+      }
+      toReturn$pVal = 1 - sum(toReturn$tStar >= taustar_p) / 100
+    }
+    else{
+      toReturn$pVal = 1 - pMixHoeffInd(n * toReturn$tStar, probs = p, error = error)
+    }  
+      
   } else {
     toReturn$pVal = NA
   }
@@ -230,11 +247,11 @@ tauStarTest <- function(x, y, error = 0.01) {
 #'
 #' @author Yuheng Lai
 tauStarDE <- function(pseudotime,
-                      count.v) {
-  res = tauStarTest(pseudotime, count.v)
+                      count.v, mode = "auto") {
+  res = tauStarTest(pseudotime, count.v, mode)
   tau = res$tStar
   tau_pv = res$pVal
-  # print(paste0(tau_pv))
+
   return(list(taustar = tau,
               taustar.pv = tau_pv
   ))
@@ -275,6 +292,7 @@ runTauStarDE <- function(gene.vec,
                          mat,
                          assay.use = "counts",
                          seurat.assay = 'RNA',
+                         mode = 'auto',
                          mc.cores = 2,
                          mc.preschedule = TRUE,
                          SIMPLIFY = TRUE) {
@@ -308,7 +326,7 @@ runTauStarDE <- function(gene.vec,
   
   res <- BiocParallel::bplapply(gene.vec, function(x, ...) {
     cur_res <- tryCatch(expr = tauStarDE(pseudotime = pseudotime,
-                                         count.v = count.v[x, ]), #input only the target gene
+                                         count.v = count.v[x, ], mode = mode), #input only the target gene
                         error = function(e) {
                           list(taustar = NA,
                                taustar.pv = NA)
