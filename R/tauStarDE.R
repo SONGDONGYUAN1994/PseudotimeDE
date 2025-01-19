@@ -248,7 +248,7 @@ tauStarTest <- function(x, y, error = 0.01, mode = "auto") {
 #' @author Yuheng Lai
 tauStarDE <- function(pseudotime,
                       count.v, mode = "auto") {
-  res = tauStarTest(pseudotime, count.v, mode)
+  res = tauStarTest(pseudotime, count.v, mode = mode)
   tau = res$tStar
   tau_pv = res$pVal
 
