@@ -5,7 +5,8 @@ Version: 0.99.0
 Authors@R: c(person("Dongyuan", "Song", email = "dongyuansong@ucla.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-1114-1215")),
              person("Tianyang", "Liu", role = "ctb"),
              person("Huy", "Nguyen", role = "ctb"),
-             person("Shiyu", "Ma", role = "ctb"))
+             person("Shiyu", "Ma", role = "ctb"),
+             person("Yuheng", "Lai", role = "ctb"))
 Maintainer: Dongyuan Song <dongyuansong@ucla.edu>
 Description: PseudotimeDE performs the differential expression (DE) analysis of genes along the pseudotime.
     Given a single cell RNA-seq data and a pseudotime inference method, pseudotimeDE returns the p-value of each gene.
@@ -26,23 +27,24 @@ Imports:
     ggplot2,
     Seurat,
     BiocParallel,
-    qgam
+    qgam,
+    Rcpp
 Suggests: 
     testthat,
     knitr,
     rmarkdown,
     SingleCellExperiment,
     irlba,
-    SeuratObject,
     scales,
     slingshot,
     BiocStyle,
     sf
 License: MIT + file LICENSE
+LinkingTo: Rcpp, RcppArmadillo
 Encoding: UTF-8
 LazyData: true
 LazyDataCompression: xz
-RoxygenNote: 7.3.1
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
 URL: https://github.com/SONGDONGYUAN1994/PseudotimeDE
 BugReports: https://github.com/SONGDONGYUAN1994/PseudotimeDE/issues

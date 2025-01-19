@@ -21,7 +21,6 @@
 #' @param seed A numeric variable of the random seed. It mainly affects the fitting of null distribution.
 #' @param quant The quantile of interest for quantile regression (qgam), range from 0 to 1, default as 0.5 (median).
 #' @param usebam A logical variable. If use \code{mgcv::bam}, which may be faster with large sample size (e.g., > 10'000 cells).
-#' @param formula An (optional) custom formula to be passed to \code{mgcv::gam}, \code{mgcv::bam}, or \code{qgam::qgam}.
 #' @param seurat.assay The \code{assay} used in Seurat. Default is \code{'RNA'}.
 #' @param mc.cores Number of cores for computing.
 #' @param mc.preschedule See \code{mclapply}. Default is TRUE.
@@ -51,7 +50,6 @@ runPseudotimeDE <- function(gene.vec,
                             seed = 123,
                             quant = 0.5,
                             usebam = FALSE,
-                            formula = NULL,
                             seurat.assay = 'RNA',
                             mc.cores = 2,
                             mc.preschedule = TRUE,
@@ -59,7 +57,7 @@ runPseudotimeDE <- function(gene.vec,
   set.seed(seed)
 
   # Avoid package check error
-  notes <- expv.quantile <- gam.fit <- NULL
+  expv.quantile <- gam.fit <- NULL
 
   BPPARAM <- BiocParallel::bpparam()
   BPPARAM$workers <- mc.cores
@@ -77,18 +75,10 @@ runPseudotimeDE <- function(gene.vec,
     cur_res <- tryCatch(expr = pseudotimeDE(gene = x,
                                             ori.tbl = ori.tbl,
                                             sub.tbl = sub.tbl,
-                                            mat = mat,
+                                            mat = mat[x,],
                                             model = model,
-                                            k = k,
-                                            knots = knots,
-                                            fix.weight = fix.weight,
-                                            aicdiff = aicdiff,
-                                            quant = quant,
-                                            usebam = usebam,
-                                            formula = formula,
                                             assay.use = assay.use,
-                                            seurat.assay = seurat.assay) |>
-        append(stats::setNames("NA_character_", "notes")),
+                                            seurat.assay = seurat.assay), #input only the target gene
                         error = function(e) {
                           list(fix.pv = NA,
                                emp.pv = NA,
@@ -101,11 +91,18 @@ runPseudotimeDE <- function(gene.vec,
                                aic = NA,
                                expv.quantile = NA,
                                expv.mean = NA,
-                               expv.zero = NA,
-                               notes = e)
+                               expv.zero = NA)
                         })
     cur_res
   },
+  assay.use = assay.use,
+  k = k,
+  knots = knots,
+  fix.weight = fix.weight,
+  aicdiff = aicdiff,
+  quant = quant,
+  usebam = usebam,
+  seurat.assay = seurat.assay,
   BPPARAM = BPPARAM)
 
 
@@ -114,7 +111,7 @@ runPseudotimeDE <- function(gene.vec,
     res <- t(res)
     rownames(res) <- gene.vec
     res <- tibble::as_tibble(res, rownames = "gene")
-    res <- tidyr::unnest(res, cols = ! (gam.fit | expv.quantile | notes))
+    res <- tidyr::unnest(res, cols = ! (gam.fit | expv.quantile))
   }
 
   res
