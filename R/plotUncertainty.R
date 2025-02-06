@@ -70,14 +70,5 @@ plotUncertainty <- function(ori.tbl,
   return(p)
 }
 
-data(LPS_ori_tbl, package = "PseudotimeDE")
-data(LPS_sub_tbl, package = "PseudotimeDE")
-
-# test
-test_plot <- plotUncertainty(LPS_ori_tbl, LPS_sub_tbl)
-
-test_plot
-
-
 
 
