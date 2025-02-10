@@ -1,3 +1,8 @@
 useDynLib(PseudotimeDE, .registration=TRUE)
 importFrom(Rcpp, evalCpp)
-exportPattern("^[[:alpha:]]+")
+
+export(plotCurve)
+export(plotUncertainty)
+export(pseudotimeDE)
+export(runPseudotimeDE)
+export(runTauStarDE)
