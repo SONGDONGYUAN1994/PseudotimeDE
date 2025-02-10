@@ -107,7 +107,7 @@ pseudotimeDE <- function(gene,
     count.v <- expv
   }
 
-  dat <- cbind(pseudotime, expv) %>% tibble::as_tibble()
+  dat <- cbind(pseudotime, expv) |> tibble::as_tibble()
 
   #if(assay.use == "logcounts"){ ## We remove the special setting of counts since the assay name can be arbitrary from users
     expv.quantile <- stats::quantile(count.v)
@@ -256,10 +256,10 @@ pseudotimeDE <- function(gene,
   ## Start permutation
   boot_tbl <- tibble::tibble(id = seq_len(length(sub.tbl)), time.res = sub.tbl)
 
-  boot_models <- boot_tbl %>%
+  boot_models <- boot_tbl |>
     dplyr::mutate(splits = purrr::map(time.res, function(x){
-      x <- cbind(expv = count.v[x$cell], pseudotime = base::sample(x$pseudotime), cellWeights = cell_weights[x$cell]) %>% as.data.frame(); x
-    })) %>%
+      x <- cbind(expv = count.v[x$cell], pseudotime = base::sample(x$pseudotime), cellWeights = cell_weights[x$cell]) |> as.data.frame(); x
+    })) |>
     dplyr::mutate(model = lapply(X = splits, FUN = fit_gam, distribution = distri, use_weights = fix.weight, k = k, knots = knots, usebam = usebam),
                   stat = sapply(model, function(fit) {
                     if(is.logical(fit)) {Tr <- NA}

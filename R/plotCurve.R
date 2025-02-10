@@ -58,37 +58,37 @@ plotCurve <- function(gene.vec,
   count_mat <- cbind(t(count_mat), pseudotime = ori.tbl$pseudotime)
 
   if(assay.use == "logcounts"){
-    count_mat <- count_mat %>% tibble::as_tibble() %>%
-      tidyr::pivot_longer(cols = gene.vec, names_to = "gene", values_to = "log_counts") %>%
+    count_mat <- count_mat |> tibble::as_tibble() |>
+      tidyr::pivot_longer(cols = all_of(gene.vec), names_to = "gene", values_to = "log_counts") |>
       dplyr::select(gene, pseudotime, log_counts)
   }
   else{
-    count_mat <- count_mat %>% tibble::as_tibble() %>%
-      tidyr::pivot_longer(cols = gene.vec, names_to = "gene", values_to = "counts") %>%
+    count_mat <- count_mat |> tibble::as_tibble() |>
+      tidyr::pivot_longer(cols = all_of(gene.vec), names_to = "gene", values_to = "counts") |>
       dplyr::select(gene, pseudotime, counts)
   }
 
 
   dat <- base::mapply(X = gene.vec, Y = model.fit, function(X, Y) {
-    count_mat %>% dplyr::filter(gene ==  X) %>% dplyr::mutate(fitted = stats::predict(Y, type = "response"))
+    count_mat |> dplyr::filter(gene ==  X) |> dplyr::mutate(fitted = stats::predict(Y, type = "response"))
   }, SIMPLIFY = FALSE)
 
 
   dat <- dplyr::bind_rows(dat)
 
 if(assay.use == "counts"){
-  p <- dat %>% ggplot(aes(x = pseudotime, y = log10(counts+1))) + geom_point(alpha = alpha) +
+  p <- dat |> ggplot(aes(x = pseudotime, y = log10(counts+1))) + geom_point(alpha = alpha) +
     facet_wrap(~gene, ncol = ncol, scales = "free_y") +
     ylab("log10(count + 1)") +
-    geom_line(aes(y = log10(fitted+1)), col = "blue", lty = "dashed", size = 1) +
+    geom_line(aes(y = log10(fitted+1)), col = "blue", lty = "dashed", linewidth = 1) +
     theme_bw()
 
 }
 else{
-  p <- dat %>% ggplot(aes(x = pseudotime, y = log_counts)) + geom_point(alpha = alpha) +
+  p <- dat |> ggplot(aes(x = pseudotime, y = log_counts)) + geom_point(alpha = alpha) +
     facet_wrap(~gene, ncol = ncol, scales = "free_y") +
     ylab("Expression") +
-    geom_line(aes(y = fitted), col = "blue", lty = "dashed", size = 1) +
+    geom_line(aes(y = fitted), col = "blue", lty = "dashed", linewidth = 1) +
     theme_bw()
   }
 

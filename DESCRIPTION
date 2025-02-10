@@ -11,7 +11,7 @@ Maintainer: Dongyuan Song <dongyuansong@ucla.edu>
 Description: PseudotimeDE performs the differential expression (DE) analysis of genes along the pseudotime.
     Given a single cell RNA-seq data and a pseudotime inference method, pseudotimeDE returns the p-value of each gene.
 Depends: R (>= 3.6.0)
-biocViews:
+biocViews: SingleCell, RNASeq, Transcriptomics, DifferentialExpression, TimeCourse
 Imports: 
     SummarizedExperiment,
     mgcv,
