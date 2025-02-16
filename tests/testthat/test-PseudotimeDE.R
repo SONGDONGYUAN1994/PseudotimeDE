@@ -1,4 +1,3 @@
-context("Run DE")
 library(PseudotimeDE)
 
 test_that("PseudotimeDE works", {
